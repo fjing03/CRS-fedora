@@ -1,3 +1,7 @@
+## 2026-11-18 — updated How to use this page guide
+
+The guide now follows the staff flow from finding a class to opening **Class Details** and starting an eligible replacement. **Full reference** explains statuses, cancellation, the week summary and printing. **Shortcuts** lists the existing week keys on wider screens.
+
 ## 2026-11-18 — the phone detail footer is one row again
 
 At ≤520 the details pop-up footer used to stack a full-width Close bar above a lone

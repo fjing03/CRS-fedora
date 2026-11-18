@@ -28,20 +28,10 @@
     <!-- ─── Page Header ─── -->
     @include('partials.ui-page-header', ['title' => 'My Timetable', 'guideToggle' => true, 'guideModal' => true])
 
-    {{-- 2026-11-16 (comparison item #12): the approved prototype's shape — subtitle
-         plus labelled sections, the same four facts this page always gave. The wording
-         is the page's own (the prototype's sentences, with the app's colours named the
-         way the legend names them). --}}
     @include('partials.ui-guide-modal', [
-        'guideTitle' => 'How to use this page',
         'guideSubtitle' => 'My Timetable',
-        'guideDescriptionHtml' => 'View your weekly <span class="info-keyword">class schedule</span> and manage <span class="info-keyword">replacement requests</span> across all cohorts.',
-        'guideGroups' => [
-            ['Week navigation', 'Use the arrows or the <strong>Today</strong> button to move between weeks.'],
-            ['Slot status', 'Normal (green), Conflicted (red) and Pending (amber). A cancelled class keeps its block, and a pending proposal says so on the block itself.'],
-            ['Request replacement', 'Click a conflicted slot to open the request form.'],
-            ['View details', 'Click any slot to see its class details.'],
-        ]
+        'guideContentView' => 'partials.guides.my-timetable',
+        'guideHasShortcuts' => true,
     ])
 
     <!-- ─── Week nav (my-timetable-responsive-prompt T11) ─── -->

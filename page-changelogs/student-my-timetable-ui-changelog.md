@@ -1,3 +1,7 @@
+## 2026-11-18 — updated How to use this page guide
+
+**Getting started** explains which class time and venue to attend and how pending proposals differ from approved replacements. **Full reference** covers the weekly counts, Class Replacements and printing; **Shortcuts** lists the existing week keys. Student access stays read-only.
+
 ## 2026-11-18 — the phone detail footer is one row again
 
 At ≤520 the details pop-up footer used to stack a full-width Close bar above a lone

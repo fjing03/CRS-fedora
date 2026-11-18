@@ -1,16 +1,6 @@
 import { test, expect, type Page } from '@playwright/test';
 
-/**
- * SDD guide-toggle-icon-only — one question-mark icon opens the inline guide,
- * and the page description lives inside the guide content.
- */
-
-const LECTURER_PAGES = [
-  { path: '/my-timetable-ui', desc: 'View your weekly class schedule' },
-  { path: '/cohort-timetable', desc: 'View the weekly timetable' },
-  // Venue Timetable and My Replacements are covered in workflow-page-guides.spec.ts.
-  // Arrangement's two-tab guide is covered in replacement-arrangement-guide.spec.ts.
-];
+// Guide content and interactions are tested in workflow-page-guides and timetable-page-guides.
 
 async function waitForGuide(page: Page): Promise<void> {
   await page.waitForSelector('.guide-toggle-icon', { timeout: 15_000 });
@@ -62,65 +52,4 @@ test.describe('staff lecturer pages', () => {
     }
   });
 
-  for (const entry of LECTURER_PAGES) {
-    test(`${entry.path}: one icon, old bar gone, description in the guide`, async ({ page }) => {
-      await page.goto(entry.path, { waitUntil: 'domcontentloaded' });
-      await waitForGuide(page);
-
-      await expect(page.locator('.guide-toggle-icon')).toHaveCount(1);
-      await expect(page.locator('.guide-toggle')).toHaveCount(0);
-
-      if (entry.desc) {
-        await expect(page.locator('.page-desc')).toHaveCount(0);
-      }
-
-      const icon = page.locator('.guide-toggle-icon');
-      await expect(icon).toHaveAttribute('aria-expanded', 'false');
-      await expect(page.locator('#guideBlock')).not.toHaveClass(/open/);
-
-      await icon.click();
-      await expect(page.locator('#guideBlock')).toHaveClass(/open/);
-      await expect(icon).toHaveAttribute('aria-expanded', 'true');
-
-      if (entry.desc) {
-        await expect(page.locator('#guideBlock .guide-description')).toContainText(entry.desc);
-      } else {
-        await expect(page.locator('#guideBlock .guide-description')).toHaveCount(0);
-        await expect(page.locator('#guideBlock .guide-list li').first()).toBeVisible();
-      }
-
-      const paddingTop = await page.locator('#guideBlock .guide-content').evaluate(
-        (el) => parseFloat(getComputedStyle(el).paddingTop)
-      );
-      expect(paddingTop).toBeGreaterThanOrEqual(8);
-
-      await icon.click();
-      await expect(page.locator('#guideBlock')).not.toHaveClass(/open/);
-      await expect(icon).toHaveAttribute('aria-expanded', 'false');
-    });
-  }
-});
-
-// Request Approval is covered in workflow-page-guides.spec.ts.
-
-test('student pages: description-only guides, no empty list', async ({ page }) => {
-  await page.goto('/login/student');
-  await page.fill('#login_id', '25RSD0001');
-  await page.fill('#password', 'Tarumt@2026');
-  await page.click('button[type="submit"]');
-  await page.waitForURL(/student-my-timetable/, { timeout: 30_000 });
-
-  const pages = [
-    { path: '/student-my-timetable-ui', desc: 'View your weekly class schedule' },
-    { path: '/student-class-replacements', desc: 'Conflicted CLASSES and where each one' },
-  ];
-  for (const entry of pages) {
-    await page.goto(entry.path, { waitUntil: 'domcontentloaded' });
-    await waitForGuide(page);
-    await expect(page.locator('.guide-toggle')).toHaveCount(0);
-    await expect(page.locator('.guide-list')).toHaveCount(0);
-    await expect(page.locator('.page-desc')).toHaveCount(0);
-    await page.locator('.guide-toggle-icon').click();
-    await expect(page.locator('#guideBlock .guide-description')).toContainText(entry.desc);
-  }
 });

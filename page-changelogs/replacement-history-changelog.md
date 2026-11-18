@@ -1,3 +1,7 @@
+## 2026-11-18 — updated How to use this page guide
+
+**Getting started** explains the two week filters, status meanings and how to open replacement details. **Full reference** covers withdrawn or rejected proposals, combined filters and the handoff to My Timetable. The page remains read-only.
+
 ## 2026-11-18 — the open filters card stops covering the column it filters
 
 On desktop (≥769) the card now starts just past the table's first labelled column

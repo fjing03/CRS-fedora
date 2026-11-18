@@ -230,16 +230,9 @@
     @include('partials.ui-page-header', ['title' => 'Cohort Timetable', 'guideToggle' => true, 'guideModal' => true, 'summaryButton' => true])
 
     @include('partials.ui-guide-modal', [
-        'guideTitle' => 'How to use this page',
-        'guideDescriptionHtml' => 'View the <span class="info-keyword">weekly timetable</span> for <span class="info-keyword">any cohort</span> across all faculties.',
-        'guideItems' => [
-            '<strong>Auto-selected</strong> — your faculty and the first cohort you teach load on arrival; switch the dropdowns to view any cohort\'s timetable',
-            '<strong>Week navigation</strong> — use arrows or Today button to browse weeks',
-            '<strong>Slot status</strong> — Green: scheduled class, Amber: pending replacement, Red: conflict/public holiday; thick border (3px) = your classes, thin border = others\'',
-            '<strong>View details</strong> — click any slot to see class details and venue info',
-            '<strong>Full names</strong> — hover the faculty/cohort dropdowns to see them spelled out',
-            '<strong>✓ Your cohorts</strong> — bold blue entries marked ✓ are the cohorts/faculties you teach this semester',
-        ]
+        'guideSubtitle' => 'Cohort Timetable',
+        'guideContentView' => 'partials.guides.cohort-timetable',
+        'guideHasShortcuts' => true,
     ])
 
     <!-- ─── Responsive chrome + toolbar (cohort-venue-responsive-port phase 1) ───

@@ -170,20 +170,3 @@ test('desktop guide owns keyboard actions without changing the grid or week', as
   await expect(startTab).toHaveAttribute('aria-selected', 'true');
   await expect(startTab).toBeFocused();
 });
-
-for (const { path, content } of [
-  { path: '/cohort-timetable', content: '.guide-list li' },
-  { path: '/my-timetable-ui', content: '.detail-group' },
-]) {
-  test(`${path}: legacy guide keeps its content without tabs`, async ({ page }) => {
-    await page.goto(path);
-    const opener = page.getByRole('button', { name: 'How to use this page' });
-    const dialog = page.locator('#guideModal');
-    await opener.click();
-    await expect(dialog.locator(content).first()).toBeVisible();
-    await expect(dialog.getByRole('tab')).toHaveCount(0);
-    await page.keyboard.press('Escape');
-    await expect(dialog).toBeHidden();
-    await expect(opener).toBeFocused();
-  });
-}

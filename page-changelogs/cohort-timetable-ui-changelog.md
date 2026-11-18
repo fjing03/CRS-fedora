@@ -1,3 +1,7 @@
+## 2026-11-18 — updated How to use this page guide
+
+**Getting started** shows staff how to pick a cohort and read its schedule. **Full reference** explains ownership borders, staff-only actions, counts and printing. **Shortcuts** lists the existing week keys. The page remains staff-only.
+
 ## 2026-11-18 — a cancelled class reads `✕ Cancelled`, not `(Cancelled)`
 
 User, 2026-11-18, with a screenshot of My Timetable: *"make all timetable pages 'Cancelled'"*,

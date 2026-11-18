@@ -3188,6 +3188,7 @@ body.summary-sheet-open #summaryExplainModal {
     .modal.modal--guide.modal--guide-tabs {
         max-height: min(94dvh, calc(100dvh - 40px));
     }
+    .guide-prose .guide-status-table th:first-child { width: 40%; }
     .modal--guide-tabs .modal-header { padding-top: 8px; }
     .modal--guide-tabs .guide-tabs { margin-top: 4px; }
     .modal--guide-tabs .modal-body { padding-block: 12px; }

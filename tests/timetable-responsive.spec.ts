@@ -1528,49 +1528,25 @@ test.describe('T16d — the round-2 rulings', () => {
     }
   });
 
-  test('5. item #12 — the guide dialog: left title, subtitle, labelled sections', async ({ browser }) => {
-    /* The preview's shape for this dialog. It is opt-in (`guideSubtitle`/`guideGroups`),
-       so a page that shares the partial keeps the old centred list — asserted here on
-       the venue page, which is one of the seven. */
+  test('5. the shared guide uses a left title, subtitle and tabs', async ({ browser }) => {
     const ctx = await browser.newContext({ viewport: { width: 390, height: 900 }, storageState: STAFF_AUTH });
     const page = await ctx.newPage();
     try {
       await open(page, 390);
-      await page.locator('[aria-label="How to use this page"]').first().click();
-      await expect(page.locator('.modal--guide')).toBeVisible();
-      const guide = await page.evaluate(() => {
-        const m = document.querySelector('.modal--guide') as HTMLElement;
-        const title = m.querySelector('.modal-title') as HTMLElement;
-        return {
-          optIn: m.classList.contains('modal--guide-left'),
-          align: getComputedStyle(title).textAlign,
-          subtitle: (m.querySelector('.modal-subtitle')?.textContent || '').trim(),
-          groups: Array.from(m.querySelectorAll('.detail-group-title')).map((g) => (g.textContent || '').trim()),
-          bullets: m.querySelectorAll('.guide-list').length,
-        };
-      });
-      expect(guide.optIn, 'item #12 — these pages opt into the preview layout').toBe(true);
-      expect(guide.align, 'item #12 — the title sits on the left').toBe('left');
-      expect(guide.subtitle, 'item #12 — the page names itself under the title').toBe('My Timetable');
-      expect(guide.groups.length, 'item #12 — one label per section').toBeGreaterThanOrEqual(3);
-      expect(guide.bullets, 'item #12 — the old bullet list is gone here').toBe(0);
-      await page.keyboard.press('Escape');
-
-      await page.goto(BASE + '/venue-timetable-ui', { waitUntil: 'networkidle' });
-      /* stale guard corrected (cohort-venue-responsive-port, approved): the Venue
-         page NOW opts into the TimetableResponsive chrome like Cohort — one root
-         carrying data-tt-page="venue". The guide partial itself is untouched; the
-         item-#12 assertions below (optIn false, centred title) stay as written. */
-      await expect(page.locator('.tt-responsive')).toHaveAttribute('data-tt-page', 'venue');
-      await page.locator('[aria-label="How to use this page"]').first().click();
-      await expect(page.locator('.modal--guide')).toBeVisible();
-      const other = await page.evaluate(() => {
-        const m = document.querySelector('.modal--guide') as HTMLElement;
-        return { optIn: m.classList.contains('modal--guide-left'),
-          align: getComputedStyle(m.querySelector('.modal-title') as HTMLElement).textAlign };
-      });
-      expect(other.optIn, 'the other seven pages keep the layout they have').toBe(false);
-      expect(other.align, 'and stay centred').toBe('center');
+      for (const title of ['My Timetable', 'Venue Timetable']) {
+        if (title === 'Venue Timetable') {
+          await page.goto(BASE + '/venue-timetable-ui', { waitUntil: 'networkidle' });
+          await expect(page.locator('.tt-responsive')).toHaveAttribute('data-tt-page', 'venue');
+        }
+        await page.getByRole('button', { name: 'How to use this page' }).click();
+        const guide = page.locator('#guideModal');
+        await expect(guide).toBeVisible();
+        await expect(guide.locator('.modal-title')).toHaveCSS('text-align', 'left');
+        await expect(guide.locator('.modal-subtitle')).toHaveText(title);
+        await expect(guide.getByRole('tab')).toHaveCount(2);
+        await expect(guide.getByRole('tab', { name: 'Getting started' })).toHaveAttribute('aria-selected', 'true');
+        await page.keyboard.press('Escape');
+      }
     } finally {
       await ctx.close();
     }

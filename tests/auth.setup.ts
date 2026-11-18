@@ -1,4 +1,4 @@
-import { test as setup } from '@playwright/test';
+import { test as setup, type Page } from '@playwright/test';
 import { mkdirSync } from 'node:fs';
 import path from 'node:path';
 
@@ -16,14 +16,14 @@ import path from 'node:path';
 const PW = 'Tarumt@2026';
 
 /** One storageState per staff identity (Fortify limiter: 1 login/run). */
-async function loginAndSave(page, id, file) {
+async function loginAndSave(page: Page, id: string, file: string, role: 'staff' | 'student' = 'staff') {
   mkdirSync(path.dirname(file), { recursive: true });
-  await page.goto('/login/staff');
+  await page.goto(`/login/${role}`);
   await page.fill('#login_id', id);
   await page.fill('#password', PW);
   await page.click('button[type="submit"]');
   // artisan serve is single-threaded — first boot / DB-cold logins can spike
-  await page.waitForURL(/(my-timetable|dashboard)/, { timeout: 30_000 });
+  await page.waitForURL(role === 'student' ? /student-my-timetable/ : /(my-timetable|dashboard)/, { timeout: 30_000 });
   await page.context().storageState({ path: file });
 }
 
@@ -41,4 +41,8 @@ setup('authenticate as staff 4363', async ({ page }) => {
    — the approval-queue smoke identity. */
 setup('authenticate as staff 5425', async ({ page }) => {
   await loginAndSave(page, '5425', path.join('.auth', 'staff-5425.json'));
+});
+
+setup('authenticate as student 24RSD0009', async ({ page }) => {
+  await loginAndSave(page, '24RSD0009', path.join('.auth', 'student-24RSD0009.json'), 'student');
 });
