@@ -3163,6 +3163,7 @@ var GuideModal = {
         const tabs = this.visibleTabs(modal);
         const tab = tabs.find(button => button.id === 'guideTab-' + tabKey) || tabs[0];
         if (tab) this.selectTab(tab);
+        modal.dispatchEvent(new Event('guide:open'));
 
         const close = modal.querySelector('.modal-close') || modal.querySelector('.btn-close-modal');
         const focusTarget = tabKey === 'start' ? close : (tab || close);

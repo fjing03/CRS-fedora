@@ -27,6 +27,7 @@ for (const { name, viewport, touch } of [
         await expect(page.locator('html')).toHaveClass(theme === 'dark' ? /\bdark\b/ : /^(?!.*\bdark\b)/);
         const start = dialog.getByRole('tab', { name: 'Getting started' });
         const reference = dialog.getByRole('tab', { name: 'Full reference' });
+        const venueRules = dialog.getByRole('tab', { name: 'Venue rules' });
         const shortcuts = dialog.locator('#guideTab-shortcuts');
         const body = dialog.locator('.modal-body');
         const footerClose = dialog.locator('.btn-close-modal');
@@ -54,7 +55,7 @@ for (const { name, viewport, touch } of [
 
         await dialog.getByText('Nothing is sent again automatically.', { exact: false }).scrollIntoViewIfNeeded();
         await expect.poll(() => body.evaluate(el => el.scrollTop)).toBeGreaterThan(0);
-        const tabs = touch ? [start, reference] : [start, reference, shortcuts];
+        const tabs = touch ? [start, reference, venueRules] : [start, reference, venueRules, shortcuts];
         for (const control of [...tabs, footerClose, dialog.locator('.modal-close')]) {
           await expect(control).toBeInViewport({ ratio: 1 });
         }
@@ -72,6 +73,8 @@ for (const { name, viewport, touch } of [
         if (touch) {
           await expect(shortcuts).toBeHidden();
           await reference.focus();
+          await page.keyboard.press('ArrowRight');
+          await expect(venueRules).toBeFocused();
           await page.keyboard.press('ArrowRight');
           await expect(start).toBeFocused();
           await expect(start).toHaveAttribute('aria-selected', 'true');

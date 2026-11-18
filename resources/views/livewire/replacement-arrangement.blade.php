@@ -1681,6 +1681,9 @@
                 padding: 0 4px;
             }
             body.arrangement-mobile-mode .ui-footer {
+                /* The mobile shell has no side gutters to bleed into. An overhang
+                   widens the visual viewport and shifts the guide sheet on focus. */
+                margin-inline: 0;
                 padding-bottom: calc(var(--arrangement-mobile-bar-height, 132px) + env(safe-area-inset-bottom, 0px) + 8px);
             }
             body.arrangement-mobile-mode #arrangementMobile [data-arrangement-mobile-timeline] .arrangement-mobile-row,
@@ -2422,6 +2425,7 @@
         @include('partials.ui-guide-modal', [
             'guideSubtitle' => 'Replacement Arrangement',
             'guideContentView' => 'partials.guides.replacement-arrangement',
+            'guideExtraTabs' => ['venue-rules' => 'Venue rules'],
             'guideHasShortcuts' => true,
         ])
 
@@ -2708,6 +2712,7 @@
     </div></div>
 
 <script src="/js/arrangement-mobile.js?v={{ filemtime(public_path('js/arrangement-mobile.js')) }}"></script>
+<script src="/js/arrangement-venue-rules.js?v={{ filemtime(public_path('js/arrangement-venue-rules.js')) }}"></script>
 
 @section('page-scripts')
         /* WRAP: the frozen script's top-level boot (generateWeekData,
@@ -6435,40 +6440,7 @@ ${(fallbackAttribution && intentReason === 'in-the-way')
            compact cohort label ('DFT2 (S1) G1'-family — spacing stripped;
            a distinct 'RAFS' extracts as RAFS: no prefix collisions). */
         function venueMatrixAllows(type, rawRoomType, venueCode, moduleCode, cohortCodes) {
-            const rule = window.__ruleMap;
-            if (!rule) return false;                       // map absent → deny (fail-closed)
-            const tag = (rawRoomType || '').toLowerCase();
-            const rowKeys = rule[type];
-            if (!Array.isArray(rowKeys)) return false;     // unknown type — fail closed
-
-            const labs = ['lab', 'cisco_lab'];
-            const baseRow = rowKeys.indexOf(tag) !== -1;
-            /* 2026-11-07 (SDD lab-access-type-aware): the roster is per module
-               AND session type — `lab_access[moduleCode]` lists the types whose
-               own seeded session sits in a lab. Both additive arms (any lab,
-               and B006 by room code) require the type to be listed; an unknown
-               module is `[]` → no widening (the fail-closed reading stands). */
-            const modLabTypes = !!moduleCode ? ((rule.lab_access || {})[moduleCode] || []) : [];
-            const labsAdditive = modLabTypes.indexOf(type) !== -1
-                && labs.indexOf(tag) !== -1;
-            const b006Code = rule.b006_venue_code || 'B006';
-            const b006Widen = venueCode === b006Code && modLabTypes.indexOf(type) !== -1;
-            if (! (baseRow || labsAdditive || b006Widen)) return false;
-
-            if (venueCode === b006Code) {
-                const focs = rule.b006_focs_programmes || [];
-                const banned = rule.b006_banned_programmes || [];
-                const cohorts = cohortCodes || [];
-                for (let k = 0; k < cohorts.length; k++) {
-                    const p = (String(cohorts[k]).replace(/\s+/g, '').match(/^[A-Z]+/) || [''])[0];
-                    if (!p) return false;               // unparsable label — fail closed
-                    if (banned.indexOf(p) !== -1) return false;
-                    if (focs.indexOf(p) === -1) return false;
-                }
-            }
-            // (was) the B005 no-Diploma deny arm — REPEALED 2026-10-27
-            // (SDD b005-diploma-allowed). Rule-map consumers compose on.
-            return true;
+            return ArrangementVenueRules.matrixAllows(window.__ruleMap, type, rawRoomType, venueCode, moduleCode, cohortCodes);
         }
 
         function venueEligible(v, ctx) {
@@ -6567,6 +6539,76 @@ ${(fallbackAttribution && intentReason === 'in-the-way')
         // ───── Slot Picker (conflict/cancelled slots for selected subject) ─────
 
         let selectedOriginalSlot = null;
+
+        // Project the applied room and original occurrence on open, without touching either.
+        document.getElementById('guideModal')?.addEventListener('guide:open', function () {
+            const panel = document.getElementById('arrangementVenueRules');
+            if (!panel) return;
+            const room = venueDropdown?.getSelected()
+                ? (MockData.venues || []).find(venue => venue.code === currentVenue)
+                : null;
+            panel.querySelector('[data-rules-empty]').hidden = !!room;
+            panel.querySelector('[data-rules-room]').hidden = !room;
+            if (!room) return;
+
+            const selected = ArrangementVenueRules.occurrence(
+                currentCourse,
+                selectedOriginalSlot,
+                window.pinnedOccurrence,
+                currentCourse ? extractSlotsForSubject(currentCourse.code) : [],
+                window.PAGE_DATA?.pinnedSession
+            );
+            const result = ArrangementVenueRules.describe(window.__ruleMap, room, selected);
+            const write = (field, value) => {
+                const target = panel.querySelector('[data-rules-field="' + field + '"]');
+                target.textContent = value || '';
+                target.hidden = !value;
+            };
+
+            const shortName = room.short_name || room.name;
+            write('room', shortName && shortName !== room.code ? room.code + ' · ' + shortName : room.code);
+            const anchor = selected?.anchor;
+            const originalDate = anchor ? weekData[anchor.week]?.days?.[anchor.day]?.date : null;
+            const classLabel = selected
+                ? [selected.moduleCode, selected.name, result.typeName, originalDate || 'Week ' + (anchor.week + 1)].filter(Boolean).join(' · ')
+                : 'Choose an original slot to see how these rules apply to your class.';
+            write('class', classLabel);
+
+            const typeMessages = {
+                default: 'Permitted by default for this room.',
+                exception: 'Permitted by a module exception for this session type.',
+                denied: 'This room does not permit this session type for the selected module.',
+                unavailable: 'Could not check the session type for this class.',
+            };
+            write('type', selected ? typeMessages[result.permission] : null);
+            write('defaults', !result.defaultsAvailable ? 'Could not check the default session types for this room.'
+                : result.defaultTypes.length ? 'Default session types: ' + result.defaultTypes.join(', ') + '.'
+                    : 'No default session types are listed for this room.');
+
+            const programme = result.programme;
+            panel.querySelector('[data-rules-programme]').hidden = !programme;
+            if (programme) {
+                write('programmes', programme.programmes === null
+                    ? 'The allowed programme list is unavailable.'
+                    : programme.programmes.length
+                        ? 'Every cohort must be from one of these programmes: ' + programme.programmes.join(', ') + '.'
+                        : 'No programmes are listed as allowed for this room.');
+                const programmeMessages = {
+                    allowed: 'All cohorts in this class meet the programme rule.',
+                    denied: 'At least one cohort in this class does not meet the programme rule.',
+                    unavailable: 'Could not check the programme rule for all cohorts in this class.',
+                };
+                write('programme-result', selected ? programmeMessages[programme.status] : null);
+            }
+
+            const seats = result.seatCount === null ? 'Seat capacity unavailable' : result.seatCount + ' seats';
+            const students = result.studentCount === null ? 'Class size unavailable'
+                : result.studentCount + (result.studentCount === 1 ? ' student' : ' students');
+            const capacity = result.fits === null ? seats + '. ' + students + '. Could not compare.'
+                : seats + ' for ' + students + '. ' + (result.fits ? 'Enough seats for this class.' : 'Not enough seats for this class.');
+            write('capacity', selected ? capacity : seats + '.');
+        });
+
         const slotDayNames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
         const slotDayAbbrs = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 

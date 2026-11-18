@@ -68,6 +68,8 @@
         <li><strong>Submission Conflict:</strong> the system checks availability again when you send. If the slot was taken, refresh and pick another. If the class already has an active request, check <strong>My Replacements</strong>.</li>
         <li><strong>Outcome Unknown:</strong> check <strong>My Replacements</strong> before retrying. The request may already have been received. Nothing is sent again automatically.</li>
     </ul>
+@elseif($guideTab === 'venue-rules')
+    @include('partials.guides.arrangement-venue-rules')
 @elseif($guideTab === 'shortcuts')
     <h4>Keyboard shortcuts</h4>
     <p>These shortcuts work in the desktop timetable view. They don’t run while you’re using a text field or dropdown. Close this guide before using the grid shortcuts.</p>

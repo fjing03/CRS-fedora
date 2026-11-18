@@ -3132,7 +3132,8 @@ body.summary-sheet-open #summaryExplainModal {
 }
 .guide-prose :is(p, li) { text-wrap: pretty; }
 .guide-prose p strong { font-weight: 600; }
-.guide-prose > :first-child { margin-top: 0; }
+.guide-prose > :first-child,
+#arrangementVenueRules section > :first-child { margin-top: 0; }
 .guide-prose > :last-child { margin-bottom: 0; }
 #guidePanel-start > p:last-child { margin-top: 16px; }
 .guide-prose p,

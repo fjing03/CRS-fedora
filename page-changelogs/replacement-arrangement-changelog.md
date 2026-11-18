@@ -1,3 +1,7 @@
+## 2026-11-18 — explain the selected room in the guide
+
+**How to use this page → Venue rules** explains the current room’s default session types, any programme restriction, and seat capacity. Once an original slot is chosen or validly pinned, it explains permission and capacity for that exact class. It does not check whether a replacement time is free, change the venue list, or touch an unsent selection. On compact phones the arrangement footer no longer extends past the viewport and pulls the guide sheet sideways.
+
 ## 2026-11-18 — final guide polish
 
 The tabbed guide uses a consistent stroked Close icon. Its redundant tooltip no longer covers the icon when the guide opens. The entrance and control transitions are skipped when the device requests reduced motion. Guide wording, controls and legacy guide behavior are unchanged.
