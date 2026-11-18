@@ -4,9 +4,9 @@ import { expect, test } from '@playwright/test';
 test.use({ storageState: '.auth/staff-5425.json' });
 
 const guides = [
-  { page: 'My Replacements', path: '/my-replacements', start: 'Find the class', reference: 'What you can do at each status' },
-  { page: 'Venue Timetable', path: '/venue-timetable-ui', start: 'Choose the room and date', reference: 'Why a free time might not work' },
-  { page: 'Request Approval', path: '/request-approval-ui', start: 'Find the request', reference: 'If a decision does not go through' },
+  { page: 'My Replacements', path: '/my-replacements', start: 'Find the class', reference: 'What you can do at each status', shortcut: 'Focus Search when Filters is open.' },
+  { page: 'Venue Timetable', path: '/venue-timetable-ui', start: 'Choose the room and date', reference: 'Why a free time might not work', shortcut: 'show its slot actions' },
+  { page: 'Request Approval', path: '/request-approval-ui', start: 'Find the request', reference: 'If a decision does not go through', shortcut: 'Opening a decision dialog does not submit a decision.' },
 ];
 
 for (const { name, viewport, touch } of [
@@ -18,7 +18,7 @@ for (const { name, viewport, touch } of [
     test.use({ viewport, isMobile: touch, hasTouch: touch });
     for (const theme of ['light', 'dark']) {
       for (const guide of guides) {
-        test(`${guide.page}, ${theme}: read both tabs and reopen at the start`, async ({ page }, info) => {
+        test(`${guide.page}, ${theme}: read the guide and reopen at the start`, async ({ page }, info) => {
           await page.addInitScript(value => localStorage.setItem('theme', value), theme);
           await page.goto(guide.path);
           const opener = page.getByRole('button', { name: 'How to use this page' });
@@ -30,7 +30,9 @@ for (const { name, viewport, touch } of [
           const pane = dialog.locator('.modal-body');
           await expect(opener).toHaveCount(1);
           await opener[activate]();
-          await expect(dialog.getByRole('tab')).toHaveCount(2);
+          const shortcut = dialog.getByRole('tab', { name: 'Shortcuts' });
+          const hasShortcuts = viewport.width > 768;
+          await expect(dialog.getByRole('tab')).toHaveCount(hasShortcuts ? 3 : 2);
           await expect(dialog.locator('.modal-subtitle')).toHaveText(guide.page);
           await expect(start).toHaveAttribute('aria-selected', 'true');
           await expect(dialog.getByRole('heading', { name: guide.start })).toBeVisible();
@@ -43,7 +45,7 @@ for (const { name, viewport, touch } of [
           const last = dialog.getByRole('tabpanel').locator(':scope > :last-child');
           await last.scrollIntoViewIfNeeded();
           expect(await pane.evaluate(el => el.scrollWidth - el.clientWidth)).toBeLessThanOrEqual(1);
-          for (const control of [start, reference, close, dialog.locator('.modal-close')]) {
+          for (const control of [start, reference, close, dialog.locator('.modal-close'), ...(hasShortcuts ? [shortcut] : [])]) {
             const geometry = await control.evaluate(el => {
               const { right, bottom, width, height } = el.getBoundingClientRect();
               return { right, bottom, width, height, viewportWidth: visualViewport!.width, viewportHeight: visualViewport!.height };
@@ -54,6 +56,12 @@ for (const { name, viewport, touch } of [
               expect(geometry.width).toBeGreaterThanOrEqual(48);
               expect(geometry.height).toBeGreaterThanOrEqual(48);
             }
+          }
+          if (hasShortcuts) {
+            await shortcut[activate]();
+            await expect(shortcut).toHaveAttribute('aria-selected', 'true');
+            await expect(dialog.getByRole('tabpanel')).toContainText(guide.shortcut);
+            await page.screenshot({ path: info.outputPath('shortcuts.png'), animations: 'disabled' });
           }
           await close[activate]();
           await expect(dialog).toBeHidden();
@@ -106,4 +114,55 @@ for (const guide of guides) {
     await expect(page.locator('#tableBody .row-focused')).toHaveCount(highlightedRows);
     if (week !== null) await expect(page.locator('#weekSelect')).toHaveValue(week);
   });
+
+  test(`${guide.page}: resizing away from Shortcuts returns to Getting started`, async ({ page }) => {
+    await page.setViewportSize({ width: 769, height: 800 });
+    await page.goto(guide.path);
+    await page.getByRole('button', { name: 'How to use this page' }).click();
+    const start = page.getByRole('tab', { name: 'Getting started' });
+    const shortcuts = page.locator('#guideTab-shortcuts');
+    await start.press('End');
+    await expect(shortcuts).toBeFocused();
+    await expect(shortcuts).toHaveAttribute('aria-selected', 'true');
+    await page.setViewportSize({ width: 768, height: 800 });
+    await expect(shortcuts).toBeHidden();
+    await expect(start).toBeFocused();
+    await expect(start).toHaveAttribute('aria-selected', 'true');
+    await start.press('ArrowLeft');
+    await expect(page.getByRole('tab', { name: 'Full reference' })).toBeFocused();
+  });
 }
+
+test('My Replacements: ? opens Shortcuts without clearing the search on Escape', async ({ page }) => {
+  await page.setViewportSize({ width: 1024, height: 768 });
+  await page.goto('/my-replacements');
+  const opener = page.getByRole('button', { name: 'How to use this page' });
+  const search = page.locator('#searchInput');
+  const dialog = page.locator('#guideModal');
+  await page.getByRole('button', { name: 'Filters', exact: true }).click();
+  const closeFilters = page.getByRole('button', { name: 'Close Filters' });
+  await closeFilters.press('/');
+  await expect(search).toBeFocused();
+  await search.fill('test');
+  await search.press('?');
+  await expect(dialog).toBeHidden();
+  const value = await search.inputValue();
+  await closeFilters.press('?');
+  await expect(dialog).toBeHidden();
+  await closeFilters.click();
+  await opener.focus();
+  await page.keyboard.press('Control+?');
+  await expect(dialog).toBeHidden();
+  await page.keyboard.press('Shift+?');
+  await expect(dialog.getByRole('tab', { name: 'Shortcuts' })).toHaveAttribute('aria-selected', 'true');
+  await expect(page.locator('#keyboardModal')).toHaveCount(0);
+  await page.keyboard.press('Escape');
+  await expect(opener).toBeFocused();
+  await expect(search).toHaveValue(value);
+  await opener.press('Enter');
+  await expect(dialog.getByRole('tab', { name: 'Getting started' })).toHaveAttribute('aria-selected', 'true');
+  await page.keyboard.press('Escape');
+  await page.setViewportSize({ width: 768, height: 800 });
+  await page.keyboard.press('?');
+  await expect(dialog).toBeHidden();
+});

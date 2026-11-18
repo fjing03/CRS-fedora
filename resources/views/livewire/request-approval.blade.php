@@ -268,6 +268,7 @@
 @include('partials.ui-guide-modal', [
     'guideSubtitle' => 'Request Approval',
     'guideContentView' => 'partials.guides.request-approval',
+    'guideHasShortcuts' => true,
 ])
 
 <!-- ─── Toolbar (filters-button: the host + placeholder keep the toolbar's seat,

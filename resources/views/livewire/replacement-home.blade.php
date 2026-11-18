@@ -237,6 +237,7 @@
         @include('partials.ui-guide-modal', [
             'guideSubtitle' => 'My Replacements',
             'guideContentView' => 'partials.guides.my-replacements',
+            'guideHasShortcuts' => true,
         ])
 
         <!-- ─── Toolbar (moved from My Requests: one filter bar, M17).
@@ -365,28 +366,6 @@
                     ]],
             ]
         ])
-
-        <!-- Keyboard Shortcuts Modal (kept — the `?` key still works; copy updated) -->
-        <div class="modal-overlay" id="keyboardModal">
-            <div class="modal" style="max-width:420px">
-                <div class="modal-header">
-                    <h3 class="modal-title">Keyboard Shortcuts</h3>
-                    <button class="modal-close" onclick="hideKeyboardShortcuts()" data-tip="Close">✕</button>
-                </div>
-                <div class="modal-body">
-                    <div class="modal-field"><span class="modal-field-label">Focus search</span><span class="modal-field-value"><code style="padding:2px 6px;border:1px solid var(--color-outline);border-radius:var(--radius-xs);font-size:12px;background:var(--color-surface-variant)">/</code></span></div>
-                    <div class="modal-field"><span class="modal-field-label">Clear filters</span><span class="modal-field-value"><code style="padding:2px 6px;border:1px solid var(--color-outline);border-radius:var(--radius-xs);font-size:12px;background:var(--color-surface-variant)">Esc</code></span></div>
-                    <div class="modal-field"><span class="modal-field-label">Next page</span><span class="modal-field-value"><code style="padding:2px 6px;border:1px solid var(--color-outline);border-radius:var(--radius-xs);font-size:12px;background:var(--color-surface-variant)">→</code></span></div>
-                    <div class="modal-field"><span class="modal-field-label">Previous page</span><span class="modal-field-value"><code style="padding:2px 6px;border:1px solid var(--color-outline);border-radius:var(--radius-xs);font-size:12px;background:var(--color-surface-variant)">←</code></span></div>
-                    <div class="modal-field"><span class="modal-field-label">Open the details</span><span class="modal-field-value"><code style="padding:2px 6px;border:1px solid var(--color-outline);border-radius:var(--radius-xs);font-size:12px;background:var(--color-surface-variant)">Enter</code></span></div>
-                    <div class="modal-field"><span class="modal-field-label">Show shortcuts</span><span class="modal-field-value"><code style="padding:2px 6px;border:1px solid var(--color-outline);border-radius:var(--radius-xs);font-size:12px;background:var(--color-surface-variant)">?</code></span></div>
-                    <p class="hint-text" style="margin-top:12px;text-align:center">Shortcuts only work when no input field is focused.</p>
-                </div>
-                <div class="modal-footer">
-                    <button class="btn-close-modal" onclick="hideKeyboardShortcuts()">Close</button>
-                </div>
-            </div>
-        </div>
 
         <!-- Quick View Modal (M7 — the ONE detail shell; #modalOverlay retires) -->
         <style>
@@ -1101,16 +1080,6 @@
             goToReplacementFor(sessionId, week, 'replacement-home');
         }
 
-        function showKeyboardShortcuts() {
-            var el = document.getElementById('keyboardModal');
-            if (el) { el.classList.add('show'); }
-        }
-
-        function hideKeyboardShortcuts() {
-            var el = document.getElementById('keyboardModal');
-            if (el) { el.classList.remove('show'); }
-        }
-
         /* ─── The detail pop-up (M7/M8) ─── */
 
         /**
@@ -1536,14 +1505,19 @@
                 if (qvEl && qvEl.classList.contains('show')) { hideQuickView(); return; }
                 var cc = document.getElementById('cancelConfirmOverlay');
                 if (cc && cc.style.display === 'flex') { closeCancelConfirm(); return; }
-                var el = document.getElementById('keyboardModal');
-                if (el && el.classList.contains('show')) { hideKeyboardShortcuts(); return; }
                 clearAllFilters();
                 return;
             }
-            if (e.key === '?' && !isInput) {
+            if (e.key === '?') {
+                if (isInput || e.target.isContentEditable || e.ctrlKey || e.metaKey || e.altKey
+                    || window.matchMedia('(max-width: 768px)').matches || GuideModal.isOpen()
+                    || document.querySelector('.modal-overlay.show, #filtersOverlay:not([hidden])')
+                    || document.getElementById('cancelConfirmOverlay').style.display === 'flex') return;
+
+                var guideOpener = document.querySelector('.guide-toggle-icon[aria-controls="guideModal"]');
+                if (!guideOpener) return;
                 e.preventDefault();
-                showKeyboardShortcuts();
+                GuideModal.open(guideOpener, 'shortcuts');
                 return;
             }
             if (isInput) return;
@@ -1687,5 +1661,4 @@
         window.buildTable = buildTable;
         window.saveFilters = saveFilters;
         window.pageState = pageState;
-        window.hideKeyboardShortcuts = hideKeyboardShortcuts;
 @endsection

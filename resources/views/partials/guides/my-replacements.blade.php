@@ -51,4 +51,21 @@
     <h4>Filters, counts and approval timing</h4>
     <p>Remove an individual filter with its chip’s <strong>×</strong>. <strong>Clear all</strong> removes every filter; <strong>Reset</strong> restores the page defaults. The summary counts reflect the filtered list, so they can change when you change the filters. On a phone, use the <strong>Summary</strong> button when it is available.</p>
     <p>The approval deadline uses campus working hours: <strong>Monday to Friday, 8:30 AM ~ 5:30 PM</strong>, excluding public holidays. This is separate from the <strong>three working days’ notice</strong> required when choosing a replacement date.</p>
+@elseif($guideTab === 'shortcuts')
+    <p>Use these keys outside the guide. Search, page and week shortcuts work when you’re not in an input.</p>
+    <table>
+        <thead>
+            <tr>
+                <th scope="col">Key</th>
+                <th scope="col">Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr><td><kbd>/</kbd></td><td>Focus <strong>Search</strong> when <strong>Filters</strong> is open.</td></tr>
+            <tr><td><kbd>←</kbd> or <kbd>→</kbd></td><td>Go to the previous or next page of results.</td></tr>
+            <tr><td><kbd>[</kbd> or <kbd>]</kbd></td><td>Go to the previous or next week in the <strong>Original slot week</strong> filter.</td></tr>
+            <tr><td><kbd>Esc</kbd></td><td>Close the open dialog. If no dialog is open, clear the filters.</td></tr>
+            <tr><td><kbd>?</kbd></td><td>Open this Shortcuts tab.</td></tr>
+        </tbody>
+    </table>
 @endif

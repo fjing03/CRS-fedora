@@ -1,3 +1,7 @@
+## 2026-11-18 — guide Shortcuts tab
+
+On desktop, **Shortcuts** lists how to highlight and open requests. **A** and **R** open decision dialogs for Pending rows; neither submits a decision.
+
 ## 2026-11-18 — two-tab Request Approval guide
 
 **Getting started** explains how to find, compare and decide a pending request, including its deadline and the fact that a decision cannot be undone. **Full reference** covers filters, desktop and phone actions, and what to check when a decision fails. The guide makes no claim about programme filtering. Approval and rejection rules are unchanged.

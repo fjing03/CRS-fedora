@@ -1,3 +1,7 @@
+## 2026-11-18 — guide Shortcuts tab
+
+On desktop, **Shortcuts** replaces the separate keyboard help dialog. Press **?** outside a field or dialog to open the tab directly.
+
 ## 2026-11-18 — two-tab My Replacements guide
 
 **Getting started** explains how to find a class, open its details and follow a request. **Full reference** covers original and requested weeks, status actions, filters and approval timing. The guide opens on Getting started each time. Request and filter behavior is unchanged.

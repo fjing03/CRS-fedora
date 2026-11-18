@@ -1,3 +1,7 @@
+## 2026-11-18 — guide Shortcuts tab
+
+On desktop, **Shortcuts** lists the week keys and how to show actions for a focused Available slot without making a booking.
+
 ## 2026-11-18 — two-tab Venue Timetable guide
 
 **Getting started** follows the room-first path from **Venue** and **Earliest bookable** to **Select a Session** and Replacement Arrangement. **Full reference** explains slot states, room fit and printing. Opening the guide does not affect the selected week or the booking flow.

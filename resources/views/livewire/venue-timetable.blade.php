@@ -637,6 +637,7 @@
     @include('partials.ui-guide-modal', [
         'guideSubtitle' => 'Venue Timetable',
         'guideContentView' => 'partials.guides.venue-timetable',
+        'guideHasShortcuts' => true,
     ])
 
     <!-- ─── JS-owned surface (wire:ignore): the grid cells, week navigation,

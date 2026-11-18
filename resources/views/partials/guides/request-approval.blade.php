@@ -45,4 +45,21 @@
     <p>For a desktop batch, tick the pending requests you want and review the selection before choosing <strong>Approve Selected</strong> or <strong>Reject Selected</strong>. A batch rejection uses <strong>one reason for every selected request</strong>. Use individual rejections when the reasons differ. Check the result for each request; some decisions can succeed while others are refused.</p>
     <h4>If a decision does not go through</h4>
     <p>The slot can change after the details were opened, or the request may already have been decided. Read the result and check the latest <strong>Status</strong> and <strong>Slot Validity</strong> before trying again. A check mark in the list is not a guarantee that approval will still succeed.</p>
+@elseif($guideTab === 'shortcuts')
+    <p>Use these keys in the request table. Opening a decision dialog does not submit a decision.</p>
+    <table>
+        <thead>
+            <tr>
+                <th scope="col">Key</th>
+                <th scope="col">Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr><td><kbd>↑</kbd> or <kbd>↓</kbd></td><td>Highlight the previous or next request.</td></tr>
+            <tr><td><kbd>Enter</kbd></td><td>Open the highlighted request’s details.</td></tr>
+            <tr><td><kbd>A</kbd></td><td>Open <strong>Approve Request</strong> for the highlighted Pending request.</td></tr>
+            <tr><td><kbd>R</kbd></td><td>Open <strong>Reject Request</strong> for the highlighted Pending request.</td></tr>
+            <tr><td><kbd>Esc</kbd></td><td>Close the open request or decision dialog, or clear the row highlight.</td></tr>
+        </tbody>
+    </table>
 @endif

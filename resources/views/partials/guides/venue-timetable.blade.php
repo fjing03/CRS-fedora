@@ -23,4 +23,18 @@
     </ul>
     <h4>Printing</h4>
     <p>Where the <strong>Print</strong> control is shown, choose one week or <strong>All Weeks (Whole Semester)</strong>. All Weeks prints normal classes only. For one week, turn off <strong>Show normal class only</strong> to include replacements and conflicts or public holidays. <strong>Pending and cancelled classes are never printed.</strong> The print selection does not change the week you’re viewing.</p>
+@elseif($guideTab === 'shortcuts')
+    <p>Use these keys on the desktop timetable.</p>
+    <table>
+        <thead>
+            <tr>
+                <th scope="col">Key</th>
+                <th scope="col">Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr><td><kbd>[</kbd> or <kbd>]</kbd></td><td>Go to the previous or next week.</td></tr>
+            <tr><td><kbd>B</kbd></td><td>With an <strong>Available</strong> grid cell focused, show its slot actions. This does not arrange or submit a request.</td></tr>
+        </tbody>
+    </table>
 @endif
