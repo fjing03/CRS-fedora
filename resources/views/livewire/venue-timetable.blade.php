@@ -2583,6 +2583,38 @@
                             }
                             const startTime = to12h(hours[e.start]);
                             const endTime = to12h(hours[e.end + 1] || add30min(hours[e.end]));
+                            /* venue-status-parity T4 (bugs #1/#2/#3/#8): the
+                               venue page hand-rolled ONE note arm and silently
+                               dropped the rest, so a pending block lost "(Pending
+                               since …)" and a cancelled block lost "(Cancelled)".
+                               `buildReplacementNote` is the SHARED renderer the
+                               other two pages already use — WITH the ownership
+                               gate (2026-11-02 fix, user report): the notes
+                               carry REQUEST facts ("Pending since 02 Nov 2026",
+                               "Proposed ⏳"), and another lecturer must not read
+                               them off the room screen. The predicate mirrors
+                               this page's own ownership law (`mine` = server
+                               truth: the class's lecturer, or the request's
+                               proposer on an amber block) with the cohort page's
+                               name fallback. */
+                            const venueNote = buildReplacementNote(e, {
+                                checkOwnership: function (ev) {
+                                    return ev.mine === true
+                                        || ev.lecturer === MockData.currentUser?.name;
+                                }
+                            });
+                            /* 2026-11-18 (user): every timetable page reads the SAME
+                               status word — `✕ Cancelled` / `⚠ Conflict` — instead of
+                               the plain `(Cancelled)` note. The word and its three
+                               stand-down rules live in ONE place (`timetableStatusWord`
+                               in ui-common.js), so the Venue page cannot drift from the
+                               shared builder. The word REPLACES the note it duplicates
+                               (one status, one line) but leaves a `(Pending since …)`,
+                               `(Proposed ⏳)` or `(Replaced for …)` note alone. */
+                            const venueWord = (typeof timetableStatusWord === 'function')
+                                ? timetableStatusWord(e, { isHoliday: !!day.holiday, note: venueNote })
+                                : '';
+                            const venueNoteHtml = (venueWord && /\(Cancelled\)/.test(venueNote)) ? '' : venueNote;
                             div.innerHTML =
                                 '<span class="ev-code">' + e.code + '(' + e.type + ')</span>' +
                                 '<span class="ev-venue">' + e.venue + '</span>' +
@@ -2593,26 +2625,8 @@
                                    the contract orders, not a print one, and it is the
                                    pin's single permitted difference. */
                                 '<span class="ev-time">' + startTime + ' ~ ' + endTime + '</span>' +
-                                /* venue-status-parity T4 (bugs #1/#2/#3/#8): the
-                                   venue page hand-rolled ONE note arm and silently
-                                   dropped the rest, so a pending block lost "(Pending
-                                   since …)" and a cancelled block lost "(Cancelled)".
-                                   `buildReplacementNote` is the SHARED renderer the
-                                   other two pages already use — WITH the ownership
-                                   gate (2026-11-02 fix, user report): the notes
-                                   carry REQUEST facts ("Pending since 02 Nov 2026",
-                                   "Proposed ⏳"), and another lecturer must not read
-                                   them off the room screen. The predicate mirrors
-                                   this page's own ownership law (`mine` = server
-                                   truth: the class's lecturer, or the request's
-                                   proposer on an amber block) with the cohort page's
-                                   name fallback. */
-                                buildReplacementNote(e, {
-                                    checkOwnership: function (ev) {
-                                        return ev.mine === true
-                                            || ev.lecturer === MockData.currentUser?.name;
-                                    }
-                                });
+                                venueWord +
+                                venueNoteHtml;
                             div.addEventListener('click', function () { openModal(e); });
                             td.appendChild(div);
                             if (info.span > 1) td.colSpan = info.span;   // parity: builder sets it only when span > 1

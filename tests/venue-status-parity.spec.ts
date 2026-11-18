@@ -106,14 +106,17 @@ test('venue B009 week 7 — a cancelled class is red, labelled and replaceable',
      legitimately removes it, which empties the anchor — skip instead of
      pretending the implementation regressed. Re-do the cancel to re-arm it. */
   test.skip(
-    cancelled.length === 1 && !cancelled[0].text.includes('(Cancelled)'),
+    cancelled.length === 1 && !cancelled[0].text.includes('Cancelled'),
     'fixture absent: session 23 / week 7 has no class_exceptions stamp any more (the cancel was undone)',
   );
 
   // bug #2: the same status/appearance the other two pages always had
   expect(cancelled).toHaveLength(1);
   expect(cancelled[0].cls).toBe('span-2 event-conflict');
-  expect(cancelled[0].text).toBe('BMSE3153(P) B009 1:00 PM ~ 2:00 PM (Cancelled)');
+  /* 2026-11-18: the plain `(Cancelled)` note became the shared status word
+     (`<span class="ev-note tt-block-status">` + glyph + `Cancelled`), so the
+     block's text loses the parentheses and the glyph contributes no text. */
+  expect(cancelled[0].text).toBe('BMSE3153(P) B009 1:00 PM ~ 2:00 PM Cancelled');
 
   const modal = await openBlockAndReadFooter(page, 'BMSE3153(P)');
   expect(modal.classRef).toBe('#23');
@@ -174,9 +177,9 @@ test('cohort page — Replace Now follows the served conflict fact, not a guess'
   // Fixture guard: it needs a live class_exceptions stamp for session 23 / week 7
   // (the user's own Undo removes it legitimately).
   const cancelled = await openCohortWeek(/RSD3/i, W7, 'BMSE3153(P)');
-  test.skip(!cancelled.text.includes('(Cancelled)'),
+  test.skip(!cancelled.text.includes('Cancelled'),
     'fixture absent: session 23 / week 7 is no longer cancelled (the cancel was undone)');
-  expect(cancelled.text).toContain('(Cancelled)');
+  expect(cancelled.text).toContain('Cancelled');
   expect(cancelled.display).toBe('flex');
 
   const holiday = await openCohortWeek(/DSF1/i, W8, 'AMSE1003(L)');
@@ -200,7 +203,7 @@ test('my-timetable is untouched — plain numbers, same class ref', async ({ pag
   const modal = await openBlockAndReadFooter(page, 'BMSE3153(P)');
   // Class Ref is unconditional; the button assertion needs the cancelled fixture
   expect(modal.classRef).toBe('#23');
-  test.skip(!blockText.includes('(Cancelled)'),
+  test.skip(!blockText.includes('Cancelled'),
     'fixture absent: session 23 / week 7 is no longer cancelled (the cancel was undone)');
   expect(modal.footer.join(' ')).toContain('Arrange Replacement[flex]');
 });

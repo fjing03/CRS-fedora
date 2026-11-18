@@ -1,3 +1,31 @@
+## 2026-11-18 — a cancelled class reads `✕ Cancelled`, not `(Cancelled)`
+
+User, 2026-11-18, with a screenshot of My Timetable: *"make all timetable pages 'Cancelled'"*,
+following the shape My Timetable already had. Cohort was one of the two surfaces still
+printing the plain `(Cancelled)` note inside the block; it now prints the same
+`<span class="ev-note tt-block-status">` + drawn glyph + `Cancelled` word as the staff and
+student timetables.
+
+- The word comes from ONE place — `timetableStatusWord(e, { isHoliday, note })` in
+  `public/js/ui-common.js`, exported as `window.timetableStatusWord`. The shared builder
+  (`makeEventBlock()`) produces it, so this page carries no copy of it and cannot drift.
+  `buildReplacementNote()` still owns the note; the word only replaces a note that duplicates it.
+- The three shipped stand-down rules carry over unchanged: only a cancelled or conflicted event
+  has a word; a public-holiday block prints none (the day is the label); and a cancelled block
+  whose note already says `(Proposed ⏳)` stands down.
+- Nothing else moved: same block classes, same ownership borders, same legend, same tooltip
+  pair (`data-name` + `data-tip2`), same cells. The block keeps its own colour — `.ev-note`
+  inherits `color` and `.tt-block-status` carries no skin — and the page's `.tt-responsive` root
+  already supplies the word's size rules.
+
+Receipt on the testing lane (`:8030`, `class_replacement_testing`, week 7, BMIT2013 / B009 /
+Tue 2:00 PM ~ 4:00 PM — the one cancelled class there): My Timetable, Cohort
+(RSD2(S1)G2) and Venue (B009) each serve the identical block innerHTML ending
+`<span class="ev-note tt-block-status"><svg class="tt-status-icon" …>…</svg>Cancelled</span>`,
+with no `(Cancelled)` note left. `tests/timetable-callers-pin.spec.ts` T15a was re-captured for
+the new shape (see the Venue changelog entry for the byte counts); the file's two LIVE pins are
+red for an unrelated committed a11y change (`1d7017b`'s `sr-only` holiday label), not for this.
+
 ## 2026-11-17 — the wide-touch window's rows reach the 48px touch floor (cohort-venue-responsive-port, final fix)
 
 The parent's verification caught the last prototype-contract miss: on the Cohort ≥1280

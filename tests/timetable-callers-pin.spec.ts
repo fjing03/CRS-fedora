@@ -6,14 +6,22 @@ import { abortUnlessTestingTarget } from './helpers/receipt-target-guard';
  * timetable-callers-pin.spec.ts — the T0a baseline pin
  * (SDD `my-timetable-responsive-prompt`, T15; spec R1 "the blast radius" + R10).
  *
- * WHAT THIS FILE PROVES. R1 promises that with the `responsive` flag ABSENT,
- * `buildTimetableGrid()`'s output is BYTE-IDENTICAL to what shipped before this
- * lane touched anything. Cohort Timetable, Venue Timetable and Replacement
- * Arrangement all call that builder without the flag, so the flag's only two
- * effects (T12's tip migration and the ≥1280 status word) must never reach them.
- * `tests/fixtures/t0a-baseline.json` was captured 2026-11-15 on the served
- * `ui-common.js` BEFORE the lane's first edit — the only moment a "before" means
- * anything (apply-log, T0a).
+ * WHAT THIS FILE PROVES. The builder's markup is pinned byte-for-byte, so an
+ * unplanned change to `buildTimetableGrid()`'s output is reported at full
+ * resolution instead of as "a string changed". `tests/fixtures/t0a-baseline.json`
+ * was first captured 2026-11-15 on the served `ui-common.js` BEFORE the
+ * `my-timetable-responsive-prompt` lane touched anything, when the promise was
+ * narrower: a caller that does NOT pass the `responsive` flag stays
+ * BYTE-IDENTICAL, because the flag's only two effects (T12's tip migration and
+ * the ≥1280 status word) belonged to the two pages that opted in.
+ *
+ * THAT NARROWER PROMISE WAS RETIRED ON 2026-11-18 (user: "make all timetable
+ * pages 'Cancelled'"). The `✕ Cancelled` / `⚠ Conflict` status word is now the
+ * timetables' ONE vocabulary on every caller, not only the two that pass the
+ * flag, so the SYNTHETIC capture was re-taken (`synthetic.capturedOn`) and now
+ * records the whole-word shape; the two LIVE captures are still the 2026-11-15
+ * bytes. The tip half is unchanged: a flag-less caller still keeps the legacy
+ * `data-name` + `data-tip2` pair, and the migration still never reaches it.
  *
  * THREE RECEIPTS, TWO KINDS:
  *
@@ -51,7 +59,7 @@ const BASELINE = JSON.parse(
   readFileSync(new URL('./fixtures/t0a-baseline.json', import.meta.url), 'utf8'),
 ) as {
   capturedOn: string;
-  synthetic: { head: string; body: string; tableDisplay: string };
+  synthetic: { capturedOn?: string; head: string; body: string; tableDisplay: string };
   syntheticEvents: Array<Record<string, unknown>>;
   syntheticDays: Array<Record<string, unknown>>;
   cohort: { path: string; html: string };
@@ -237,15 +245,15 @@ test.describe('T15a — synthetic pin: the builder called without `responsive`',
        not passed, so no page opted in and no CSS can be blamed. */
     assertPinned(
       'synthetic #tableHead.innerHTML',
-      'R1: buildTimetableGrid() output is byte-identical when `responsive` is absent '
-        + `(captured ${BASELINE.capturedOn})`,
+      'R1: buildTimetableGrid() output is pinned byte-for-byte '
+        + `(captured ${BASELINE.synthetic.capturedOn ?? BASELINE.capturedOn})`,
       seen.head,
       BASELINE.synthetic.head,
     );
     assertPinned(
       'synthetic #tableBody.innerHTML',
-      'R1: buildTimetableGrid() output is byte-identical when `responsive` is absent '
-        + `(captured ${BASELINE.capturedOn})`,
+      'R1: buildTimetableGrid() output is pinned byte-for-byte '
+        + `(captured ${BASELINE.synthetic.capturedOn ?? BASELINE.capturedOn})`,
       seen.body,
       BASELINE.synthetic.body,
     );

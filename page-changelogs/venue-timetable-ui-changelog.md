@@ -1,3 +1,35 @@
+## 2026-11-18 — a cancelled class reads `✕ Cancelled`, not `(Cancelled)`
+
+User, 2026-11-18, with a screenshot of My Timetable: *"make all timetable pages 'Cancelled'"*,
+following the shape My Timetable already had. Cohort and Venue were the two surfaces still
+printing the plain `(Cancelled)` note in the block; they now print the same
+`<span class="ev-note tt-block-status">` + drawn glyph + `Cancelled` word as the staff and
+student timetables.
+
+- The word comes from ONE place — `timetableStatusWord(e, { isHoliday, note })` in
+  `public/js/ui-common.js`, exported as `window.timetableStatusWord`. The shared builder
+  (`makeEventBlock()`) and this page's own hand-rolled block (`cellRender` in
+  `venue-timetable.blade.php`) both call it, so the room screen cannot drift from the grid
+  engine. `buildReplacementNote()` still owns the note.
+- The three shipped stand-down rules are carried over unchanged: only a cancelled or
+  conflicted event has a word; a public-holiday block prints none (the day is the label); and
+  a cancelled block whose note already says `(Proposed ⏳)` stands down.
+- The word REPLACES a note that duplicates it (one status, one line), and leaves
+  `(Pending since …)`, `(Proposed ⏳)` and `(Replaced for …)` alone.
+- No layout, colour, cell, free/too-soon/no-fit, tooltip, legend or booking change. The block
+  keeps its own colour (`.ev-note` inherits `color`; `.tt-block-status` carries no skin), and
+  the `.tt-responsive` root already supplies the word's size rules on this page.
+
+Receipt: `tests/timetable-callers-pin.spec.ts` T15a — the synthetic capture was re-taken on
+2026-11-18 (the old one pinned "a caller without the `responsive` flag never prints the word",
+a promise this change retires on purpose): body 17 334 → 17 950 bytes, 2 status words, 0
+remaining `(Cancelled)`. `tests/venue-status-parity.spec.ts` was moved onto the new wording
+(`… 2:00 PM Cancelled`, no brackets; the SVG adds no text), and its "is the fixture still
+cancelled?" guards now look for the word. The two LIVE pins in the callers-pin file are red for
+an unrelated reason — the committed a11y work `1d7017b` added an `sr-only` holiday label to the
+day header; stripping that one span makes both captures byte-identical again, so nothing here
+moved them.
+
 ## 2026-11-18 — the phone detail footer is one row again
 
 At ≤520 the details pop-up footer used to stack a full-width Close bar above a lone

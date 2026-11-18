@@ -1030,6 +1030,45 @@ function buildReplacementNote(e, opts) {
     return '';
 }
 
+/* ── The ONE status word a timetable block prints under its time ──
+   2026-11-18 (user, screenshot of AMSE1003(P) B010 on My Timetable):
+   "make all timetable pages 'Cancelled'" — every timetable block reads
+   `✕ Cancelled` / `⚠ Conflict` in the SAME shape, and the old plain
+   `(Cancelled)` note no longer stands in for it. The word is the element
+   My Timetable has carried since `my-timetable-responsive-prompt` T12(b)
+   (`<span class="ev-note tt-block-status">` + a drawn glyph); it is built
+   here so Cohort, Venue and the shared builder print one identical string.
+
+   `buildReplacementNote()` still owns the NOTE. This owns the WORD, and the
+   block drops a note that duplicates it — one status, one line.
+
+   The three shipped rules, unchanged:
+     · only a cancelled / conflicted event has a word at all;
+     · a public-holiday block prints none — the day itself is the label;
+     · a cancelled block whose note already says `(Proposed ⏳)` stands down
+       (2026-11-16: the proposal is the live answer, so the dead status is
+       not repeated beside it). */
+function timetableStatusIconHtml(kind) {
+    const paths = kind === 'cancelled'
+        ? '<line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/>'
+        : '<path d="M12 3 2.6 20h18.8L12 3z"/><path d="M12 9v5M12 17.2v.2"/>';
+    return '<svg class="tt-status-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" '
+        + 'stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+        + paths + '</svg>';
+}
+
+function timetableStatusWord(e, opts) {
+    opts = opts || {};
+    if (!e || (e.status !== 'cancelled' && e.status !== 'conflict')) return '';
+    if (opts.isHoliday) return '';
+    if (e.status === 'cancelled'
+        && /\(Proposed/.test(String(opts.note || '').replace(/<[^>]*>/g, ''))) return '';
+    return '<span class="ev-note tt-block-status">'
+        + timetableStatusIconHtml(e.status)
+        + (e.status === 'cancelled' ? 'Cancelled' : 'Conflict') + '</span>';
+}
+window.timetableStatusWord = timetableStatusWord;
+
 function buildTimetableGrid(cfg) {
     const head = document.getElementById(cfg.headId || 'tableHead');
     const body = document.getElementById(cfg.bodyId || 'tableBody');
@@ -1094,17 +1133,9 @@ function buildTimetableGrid(cfg) {
     }
     window.tipLecturerUnlessSelf = tipLecturerUnlessSelf;
 
-    /* The status word's glyph as an HTML string — makeEventBlock() builds its block
-       content as a string, so the DOM builder inside TimetableResponsive cannot be
-       used there. Same two shapes, one file, no second vocabulary (item #9). */
-    function statusIconHtml(kind) {
-        const paths = kind === 'cancelled'
-            ? '<line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/>'
-            : '<path d="M12 3 2.6 20h18.8L12 3z"/><path d="M12 9v5M12 17.2v.2"/>';
-        return '<svg class="tt-status-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" '
-            + 'stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
-            + paths + '</svg>';
-    }
+    /* The status word's glyph now lives at module level (timetableStatusIconHtml)
+       because the Venue page builds its blocks in the blade and must print the
+       identical string — same two shapes, one file, no second vocabulary. */
 
     function makeEventBlock(e, span, day, cfg, di) {
         const isConflict = day.holiday;
@@ -1190,35 +1221,23 @@ function buildTimetableGrid(cfg) {
             extraHtml = '<span class="ev-note">(Replaced for ' + e.remarks + ')</span>';
         }
 
-        /* T12(b) — the ONE desktop change (spec R4): at >=1280 a cancelled or
-           conflicted block prints `✕ Cancelled` / `⚠ Conflict` UNDER the time, in the
-           block's own colour. `.ev-note` supplies the shipped note tier (11px/600,
-           centred, margin-top 1px) and inherits the block's `color`, so this is the
-           block's own colour with no new skin; `.tt-block-status` is the stable hook
-           (no rules of its own). A public holiday prints NO word inside a block, and
-           nothing else about the block moves — code, venue, time, note keep their
-           order. Flag-only, so the other four callers stay byte-identical (T0a). */
-        /* 2026-11-16 (user, screenshot of AMSE2003(T) B100): "if got 'Proposed', pls keep
-           it & remove 'Cancelled'". A cancelled block WITH a pending proposal read
-           `✕ Cancelled` on one line and `(Proposed ⏳)` on the next — two answers to the
-           same question, and the second is the live one. The word stands down for that
-           pair only: a plain cancelled block keeps its word, and a conflicted block with
-           a proposal keeps `⚠ Conflict` beside it (the clash is still true). */
-        let statusWord = '';
-        let wordStoodDown = e.status === 'cancelled' && /\(Proposed/.test(extraHtml);
-        if (cfg.responsive && !isConflict && !wordStoodDown && (e.status === 'cancelled' || e.status === 'conflict')) {
-            statusWord = '<span class="ev-note tt-block-status">'
-                + statusIconHtml(e.status)
-                + (e.status === 'cancelled' ? 'Cancelled' : 'Conflict') + '</span>';
-        }
+        /* 2026-11-18 — the word is no longer flag-gated. It began as T12(b)'s
+           >=1280 desktop change under `cfg.responsive` (My Timetable, Student My
+           Timetable); the user has since asked for it on EVERY timetable page, so
+           `timetableStatusWord()` now answers for every caller. The two facts it
+           encodes are unchanged: the block's own colour (`.ev-note` inherits
+           `color`, `.tt-block-status` is only a hook — no skin of its own), and the
+           stand-down rules (holiday, `(Proposed ⏳)`); a plain cancelled/conflicted
+           block prints the word, and nothing else about the block moves. */
+        const statusWord = timetableStatusWord(e, { isHoliday: isConflict, note: extraHtml });
 
         /* …and the word REPLACES the legacy `(Cancelled)` note it duplicates, the
            same rule the phone card follows (R3: one status word, not two). Found
            live: the desktop block printed "✕ Cancelled (Cancelled)" — the word
            added by T12 beside the note the page's own replacementNoteFn still
            supplied. The user's word, 2026-11-15: "remove the old ev note".
-           Flag-only, and only when a word is actually printed, so the other four
-           callers keep the note and stay byte-identical (T0a). */
+           Only when a word is actually printed, so a `(Proposed ⏳)` note — or a
+           holiday's note — survives untouched. */
         if (statusWord && /\(Cancelled\)/.test(extraHtml)) extraHtml = '';
 
         div.innerHTML =
