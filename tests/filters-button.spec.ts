@@ -442,8 +442,24 @@ test.describe('T18 — the door and the frame', () => {
     expect(card.width, 'the card is capped at 460px').toBeLessThanOrEqual(460);
     expect(card.x, 'left is clamped to the viewport gutter').toBeGreaterThanOrEqual(8 - TOL);
     expect(card.x + card.width, 'right is clamped to the viewport gutter').toBeLessThanOrEqual(769 - 8 + TOL);
-    /* design §3: the anchor is the button the user pressed */
-    expect(Math.abs(card.x - Math.min(Math.max(button.x, 8), 769 - card.width - 8)), 'left = clamp(button left…)').toBeLessThanOrEqual(TOL);
+    /* 2026-11-18 (filters-panel-and-popup-footer): the anchor is no longer the button's
+       left edge — the card starts past the grid's first LABELLED column, so an open
+       panel stops covering the column it filters. Top, width and both viewport clamps
+       are unchanged; a leading checkbox column does not count. */
+    const anchor = await page.evaluate(() => {
+      const th = [...document.querySelectorAll('table thead th')].find(
+        (el) => (el as HTMLElement).offsetParent !== null && (el.textContent || '').trim() !== '',
+      );
+      return {
+        thRight: th ? th.getBoundingClientRect().right : null,
+        btnLeft: document.getElementById('filtersButton')!.getBoundingClientRect().x,
+      };
+    });
+    const jsAnchor = anchor.thRight === null ? anchor.btnLeft : anchor.thRight + 12;
+    expect(
+      Math.abs(card.x - Math.min(Math.max(jsAnchor, 8), 769 - card.width - 8)),
+      'left = clamp(past the first labelled column, …)',
+    ).toBeLessThanOrEqual(TOL);
     expect(
       await page.evaluate(() => getComputedStyle(document.getElementById('filtersOverlay')!).backgroundColor),
       'the desktop veil is the prototype\'s 0.32 literal (R2)',

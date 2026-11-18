@@ -2939,8 +2939,8 @@ var FiltersPanel = {
         if (restoreFocus !== false && opener) opener.focus({ preventScroll: true });
     },
 
-    /* ≥769: the card, anchored under the button's left edge and clamped inside the
-       viewport. ≤768: CSS owns the bottom sheet, so the inline box is cleared. */
+    /* ≥769: place the card below the button and clear of the first labelled
+       column when it fits. ≤768: let CSS place the bottom sheet. */
     _place: function () {
         var panel = this._panel;
         var btn = this._button;
@@ -2956,11 +2956,24 @@ var FiltersPanel = {
 
         var r = btn.getBoundingClientRect();
         var w = Math.min(460, window.innerWidth - 16);
-        var left = Math.min(Math.max(r.left, 8), window.innerWidth - w - 8);
+        var firstColumn = this._firstLabelledColumn();
+        var anchor = firstColumn ? firstColumn.right + 12 : r.left;
+        var left = Math.min(Math.max(anchor, 8), window.innerWidth - w - 8);
         panel.style.left = left + 'px';
         panel.style.top = (r.bottom + 8) + 'px';
         panel.style.width = w + 'px';
         panel.style.maxHeight = Math.max(200, window.innerHeight - (r.bottom + 8) - 8) + 'px';
+    },
+
+    /* Skip checkbox headers and grids hidden by an empty or card view. */
+    _firstLabelledColumn: function () {
+        var headers = document.querySelectorAll('.grid-scroll thead th');
+        for (var i = 0; i < headers.length; i++) {
+            if (!headers[i].textContent.trim()) continue;
+            var rect = headers[i].getBoundingClientRect();
+            if (rect.width && rect.height) return rect;
+        }
+        return null;
     },
 
     /* A resize re-places the card and MUST NEVER close the panel (design §6.3) —

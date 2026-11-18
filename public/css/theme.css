@@ -5672,10 +5672,8 @@ body.filters-panel-open .filters-btn { position:relative; z-index:1300; }
 }
 @media (min-width:769px) {
     .filters-overlay { align-items:flex-start; justify-content:flex-start; background:rgba(0,0,0,.32); }
-    /* design §3: the CARD is positioned from the button's rect by FiltersPanel._place(),
-       which writes inline left/top/max-height — those only mean anything on a fixed box.
-       (The §5 snippet omitted this property; §3 names it as deliberate. Without it the
-       card rendered at the overlay's content origin, not under the button.) */
+    /* FiltersPanel._place() positions the fixed card below the button row, clear
+       of the first labelled column when there is room. */
     .filters-panel { position:fixed; width:min(460px, calc(100vw - 16px)); border-radius:var(--radius-lg);
         box-shadow:var(--shadow-lg); }
 }

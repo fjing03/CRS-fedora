@@ -1,3 +1,13 @@
+## 2026-11-18 — the open filters card stops covering the column it filters
+
+On desktop (≥769) the card now starts just past the table's first labelled column
+(Course, Request ID …) instead of on its left edge, so the identity column stays
+readable while filters are being changed. The top under the Filters button, the 460px
+cap and both viewport clamps are unchanged; where clearing the column would push the
+card past the right gutter, the existing clamp wins rather than an overflow. The grid
+never shifts and gains no horizontal scroll because of the panel. Below 769 the docked
+sheet is untouched. A leading checkbox column does not count as the labelled column.
+
 ## 2026-11-18 — readable dark tabs and a touch-sized quiet exit
 
 Shared `theme.css` now uses `--color-on-primary-container` for active-tab text in
