@@ -1,3 +1,7 @@
+## 2026-11-18 — keyboard shortcuts in the page guide
+
+The guide now has a **Shortcuts** tab with the desktop grid keys. Pressing `?` in the desktop timetable opens that tab directly instead of opening a separate overlay. The help button (including Enter or Space on it) still opens **Getting started**. The keyboard shortcut stays inactive in mobile view and in text fields or dropdowns. All three tabs fit at 320px with touch targets of at least 48px.
+
 ## 2026-11-18 — two-tab “How to use this page” pilot
 
 The question-mark button now opens **Getting started** and **Full reference** instead of expanding the old inline help. Each open starts at the top of **Getting started**. The tabs and Close stay visible while the guide scrolls. The guide keeps booking shortcuts from firing behind it; the separate keyboard-shortcuts overlay is unchanged.

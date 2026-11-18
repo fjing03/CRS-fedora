@@ -1,0 +1,10 @@
+# Pilot amendment — Shortcuts tab
+
+User requested the existing Arrangement keyboard shortcuts in a new guide tab. Only live Replacement Arrangement opts in to **Shortcuts**. Use the existing guide table style, short tab label and a note that these are desktop grid shortcuts. Keep the original content tabs and all other pages/fallbacks unchanged.
+
+Move the shortcut list out of the redundant separate overlay. Desktop `?` opens **Shortcuts** directly in the shared guide; the normal question-mark button opens **Getting started** as before, including with Enter/Space. Leave Enter/Space on the guide opener to native button activation, without preventing the default or opening a second time in script. `?` must stay inert in editable controls and under the existing mobile/info guards. Other booking keys and guide callers stay unchanged. Verify each listed key against the live handler, including Command as an alternative where `metaKey` is accepted. While the guide is open, grid shortcuts stay isolated and Escape closes only the guide. At 320 CSS px in Chromium with touch, all three labels must be fully visible without clipping or sideways scroll, including padding and tab gaps. Measure 48×48 CSS px or more for each target.
+
+Verify the three tabs across existing pilot viewports/themes, direct `?` in desktop grid context, both Enter and Space on the opener resetting to **Getting started** after a shortcut open, `?` staying inert on a select and on mobile, legacy isolation, and the existing mobile shortcut guard. No request submissions or business-data writes.
+
+## Review and verification
+Independent reviewer confirmed the revised acceptance criteria before implementation. On the testing service, all 9 guide checks and the targeted Arrangement mobile keyboard/sheet regression passed. Visually checked Shortcuts at 320px; all labels fit on one row and Close is inside the visible viewport. PHP lint, JS syntax and `git diff --check` passed. Screenshots: `/tmp/crs-guide-shortcuts/`.

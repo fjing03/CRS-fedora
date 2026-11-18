@@ -882,49 +882,6 @@
             outline: 2px solid var(--color-primary);
             outline-offset: -2px;
         }
-        .help-overlay {
-            position: fixed;
-            inset: 0;
-            background: rgba(0,0,0,0.45);
-            z-index: 100;
-            display: none;
-            align-items: center;
-            justify-content: center;
-        }
-        .help-overlay.active {
-            display: flex;
-        }
-        .help-card {
-            background: var(--color-surface);
-            border-radius: var(--radius-lg);
-            padding: 24px;
-            max-width: 400px;
-            width: 90%;
-            box-shadow: var(--shadow-lg);
-        }
-        .help-card h3 {
-            margin: 0 0 16px 0;
-            font-size: 16px;
-            color: var(--color-on-surface);
-        }
-        .help-card .shortcut-row {
-            display: flex;
-            justify-content: space-between;
-            padding: 6px 0;
-            font-size: 13px;
-            color: var(--color-on-surface-variant);
-        }
-        .help-card .shortcut-key {
-            font-family: monospace;
-            background: var(--color-surface-variant);
-            padding: 2px 6px;
-            border-radius: var(--radius-xs);
-            font-size: 12px;
-        }
-        .help-card .help-close {
-            margin-top: 16px;
-            text-align: right;
-        }
         /* Desktop keeps the compact ×; the mobile sheet swaps in a text
            "Close" action to match the Saved Selection header. */
         .modal-close-text {
@@ -1792,7 +1749,7 @@
 
             /* One mobile sheet language for every pop-up: the Saved Selection
                info sheet, the existing confirmation modal (Unsaved Changes,
-               change guards, submit/conflict feedback) and the shortcuts card
+               change guards and submit/conflict feedback)
                share the same bottom-sheet frame, header and action rail. */
             body.arrangement-mobile-mode #confirmModal {
                 align-items: flex-end;
@@ -1861,30 +1818,6 @@
                 color: var(--color-on-surface);
             }
 
-            body.arrangement-mobile-mode .help-overlay {
-                align-items: flex-end;
-                padding: 0;
-                background: var(--color-scrim);
-            }
-            body.arrangement-mobile-mode .help-card {
-                width: 100%;
-                max-width: 100%;
-                max-height: 85dvh;
-                margin: 0;
-                padding: 16px 16px calc(16px + env(safe-area-inset-bottom, 0px));
-                border: 1px solid var(--color-outline);
-                border-radius: 18px 18px 0 0;
-                box-shadow: none;
-                overflow-y: auto;
-            }
-            body.arrangement-mobile-mode .help-card .help-close .btn {
-                width: 100%;
-                min-height: 44px;
-                border: 1px solid var(--color-outline);
-                background: transparent;
-                color: var(--color-on-surface);
-            }
-
             /* Motion is never required to read state; reduced motion drops the
                nonessential page-local transitions/scroll behaviour. */
             @media (prefers-reduced-motion: reduce) {
@@ -1899,8 +1832,7 @@
                 body.arrangement-mobile-mode .toast-bar {
                     animation-duration: 0.01ms !important;
                 }
-                body.arrangement-mobile-mode #confirmModal .modal,
-                body.arrangement-mobile-mode .help-card {
+                body.arrangement-mobile-mode #confirmModal .modal {
                     animation-duration: 0.01ms !important;
                 }
             }
@@ -2490,6 +2422,7 @@
         @include('partials.ui-guide-modal', [
             'guideSubtitle' => 'Replacement Arrangement',
             'guideContentView' => 'partials.guides.replacement-arrangement',
+            'guideHasShortcuts' => true,
         ])
 
         <div class="booking-intent-wrap" id="bookingIntent"></div>
@@ -2769,22 +2702,6 @@
                 <button class="btn btn-primary" id="modalConfirmBtn">Confirm</button>
                 <button class="btn btn-primary" id="modalActionBtn" style="display:none"></button>
             </div>
-        </div>
-    </div>
-
-<div class="help-overlay" id="helpOverlay" onclick="if(event.target===this)hideHelp()">
-    <div class="help-card">
-        <h3>Keyboard Shortcuts</h3>
-        <div class="shortcut-row"><span>Navigate grid</span><span class="shortcut-key">↑ ↓ ← →</span></div>
-        <div class="shortcut-row"><span>Select / deselect slot</span><span class="shortcut-key">Enter / Space</span></div>
-        <div class="shortcut-row"><span>Undo last selection</span><span class="shortcut-key">Ctrl+Z</span></div>
-        <div class="shortcut-row"><span>Previous week</span><span class="shortcut-key">[</span></div>
-        <div class="shortcut-row"><span>Next week</span><span class="shortcut-key">]</span></div>
-        <div class="shortcut-row"><span>Switch venue (1-3)</span><span class="shortcut-key">Ctrl+1/2/3</span></div>
-        <div class="shortcut-row"><span>Close modal / clear focus</span><span class="shortcut-key">Escape</span></div>
-        <div class="shortcut-row"><span>Show this help</span><span class="shortcut-key">?</span></div>
-        <div class="help-close">
-            <button class="btn btn-outline" onclick="hideHelp()">Close</button>
         </div>
     </div>
 
@@ -5023,14 +4940,6 @@
             focusedCell = { day: null, hour: null };
         }
 
-        function showHelp() {
-            document.getElementById('helpOverlay').classList.add('active');
-        }
-
-        function hideHelp() {
-            document.getElementById('helpOverlay').classList.remove('active');
-        }
-
         function handleKeyDown(e) {
             if (GuideModal.isOpen()) return;
 
@@ -5039,12 +4948,6 @@
                 if (e.key === 'Escape') hideConfirmModal(e);
                 return;
             }
-            const help = document.getElementById('helpOverlay');
-            if (help && help.classList.contains('active')) {
-                if (e.key === 'Escape') hideHelp();
-                return;
-            }
-
             /* T13: the one mobile information sheet owns the keyboard. No
                hidden-grid command may run behind it, and native dialog keys
                (Escape included) are deliberately not prevented here. */
@@ -5053,7 +4956,7 @@
             /* let form controls keep their native keys — the grid must not
                hijack arrows/space/enter from the subject or week selects */
             const tag = ((e.target && e.target.tagName) || '').toLowerCase();
-            if (tag === 'select' || tag === 'input' || tag === 'textarea') {
+            if (tag === 'select' || tag === 'input' || tag === 'textarea' || e.target?.isContentEditable) {
                 if (e.key === 'Escape') e.target.blur();
                 return;
             }
@@ -5064,6 +4967,9 @@
                button/select activation working. Critical-modal Escape above
                still runs first on both layouts. */
             if (arrangementMobile?.isMobile?.()) return;
+
+            const guideOpener = document.querySelector('.guide-toggle-icon[aria-controls="guideModal"]');
+            if (e.target === guideOpener && (e.key === 'Enter' || e.key === ' ')) return;
 
             const days = getDays();
             const maxDay = days.length - 1;
@@ -5114,7 +5020,8 @@
                     weekNav.nextWeek();
                     break;
                 case '?':
-                    showHelp();
+                    e.preventDefault();
+                    GuideModal.open(guideOpener, 'shortcuts');
                     break;
                 case 'z':
                 case 'Z':
@@ -7641,8 +7548,6 @@ writeSlotTrigger(slot);
         window.classifyState = classifyState;         // arrangement-cell-state-labels: class + words
         window.cellStateLabel = cellStateLabel;       // the hover words alone (<br> joined)
         window.hideConfirmModal = hideConfirmModal;
-        window.showHelp = showHelp;
-        window.hideHelp = hideHelp;
         window.dismissBookingIntent = dismissBookingIntent;
         window.removeSavedBlock = removeSavedBlock;
         /* the ui-week-nav partial's inline onclick calls weekNav.* */

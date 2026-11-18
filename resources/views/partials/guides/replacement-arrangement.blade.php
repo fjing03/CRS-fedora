@@ -19,7 +19,7 @@
         <li><strong>Submission Conflict:</strong> read the reason. If the time is no longer free, refresh and choose another. If the class already has an active request, check <strong>My Replacements</strong> instead.</li>
         <li><strong>Outcome Unknown:</strong> check <strong>My Replacements</strong> before trying again. The request may already have been received.</li>
     </ul>
-@else
+@elseif($guideTab === 'reference')
     <h4>Original class and replacement slot</h4>
     <p><strong>Conflict Schedule</strong> identifies the class you’re replacing. <strong>Replacement Schedule</strong> is where you choose its new venue, week and time. Check both before submitting: the original class and the new time can fall in different weeks.</p>
     <p>You can replace a class affected by a public holiday, but you cannot schedule its replacement on a public holiday. If the original class already has a <strong>Pending</strong> or <strong>Approved</strong> request, check that request in <strong>My Replacements</strong> instead of starting another.</p>
@@ -70,4 +70,25 @@
     </ul>
     <p><strong>Approval deadline:</strong> the <strong>three-working-day</strong> rule decides which date you can choose. The <strong>three-working-hour</strong> rule decides when an unapproved request expires. Working hours are <strong>Monday to Friday, 8:30 AM ~ 5:30 PM</strong>, excluding public holidays. Check the request’s deadline in <strong>My Replacements</strong>.</p>
     <p>Availability is checked again when you submit. If the time was taken, follow the conflict message and choose another. If the phone tells you a selection is no longer bookable, review it, remove it if needed, and pick a later date. If the outcome is unknown, check <strong>My Replacements</strong> before trying again. Nothing is sent again automatically.</p>
+@elseif($guideTab === 'shortcuts')
+    <h4>Keyboard shortcuts</h4>
+    <p>These shortcuts work in the desktop timetable view. They don’t run while you’re using a text field or dropdown. Close this guide before using the grid shortcuts.</p>
+    <table>
+        <thead>
+            <tr>
+                <th>Key</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr><td><kbd>Arrow keys</kbd></td><td>Move between grid cells.</td></tr>
+            <tr><td><kbd>Enter</kbd> or <kbd>Space</kbd></td><td>Select or deselect the focused slot.</td></tr>
+            <tr><td><kbd>Ctrl</kbd> or <kbd>⌘</kbd> + <kbd>Z</kbd></td><td>Undo the last slot selection change.</td></tr>
+            <tr><td><kbd>[</kbd></td><td>Go to the previous week.</td></tr>
+            <tr><td><kbd>]</kbd></td><td>Go to the next week.</td></tr>
+            <tr><td><kbd>Ctrl</kbd> or <kbd>⌘</kbd> + <kbd>1</kbd>, <kbd>2</kbd> or <kbd>3</kbd></td><td>Choose the first, second or third venue in the current list.</td></tr>
+            <tr><td><kbd>Esc</kbd></td><td>Close the guide or clear the grid focus.</td></tr>
+            <tr><td><kbd>?</kbd></td><td>Open this Shortcuts tab.</td></tr>
+        </tbody>
+    </table>
 @endif

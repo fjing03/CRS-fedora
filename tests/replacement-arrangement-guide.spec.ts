@@ -21,22 +21,28 @@ for (const { name, viewport, touch } of [
   test.describe(name, () => {
     test.use({ viewport, isMobile: touch, hasTouch: touch });
     for (const theme of ['light', 'dark']) {
-      test(`${theme}: both tabs, reading scroll and reset`, async ({ page }, testInfo) => {
+      test(`${theme}: three tabs, reading scroll and reset`, async ({ page }, testInfo) => {
         await page.addInitScript(value => localStorage.setItem('theme', value), theme);
         const { opener, dialog } = await openArrangement(page);
         await expect(page.locator('html')).toHaveClass(theme === 'dark' ? /\bdark\b/ : /^(?!.*\bdark\b)/);
         const start = dialog.getByRole('tab', { name: 'Getting started' });
         const reference = dialog.getByRole('tab', { name: 'Full reference' });
+        const shortcuts = dialog.getByRole('tab', { name: 'Shortcuts' });
         const body = dialog.locator('.modal-body');
         const footerClose = dialog.locator('.btn-close-modal');
         const activate = touch ? 'tap' : 'click';
 
+        if (touch) {
+          await expect(page.locator('body')).toHaveClass(/arrangement-mobile-mode/);
+          await page.keyboard.press('?');
+          await expect(dialog).toBeHidden();
+        }
         await opener[activate]();
         await expect(opener).toHaveAttribute('aria-expanded', 'true');
         await expect(start).toHaveAttribute('aria-selected', 'true');
         await expect(dialog.getByRole('tabpanel')).toContainText('three working hours or less');
         await expect(dialog.locator('#guidePanel-reference')).toBeHidden();
-        await dialog.screenshot({ path: testInfo.outputPath('getting-started.png'), animations: 'disabled' });
+        await page.screenshot({ path: testInfo.outputPath('getting-started.png'), animations: 'disabled' });
 
         await reference[activate]();
         await expect(reference).toHaveAttribute('aria-selected', 'true');
@@ -44,16 +50,16 @@ for (const { name, viewport, touch } of [
         await expect(dialog.locator('#guidePanel-start')).toBeHidden();
         await expect.poll(() => body.evaluate(el => el.scrollTop)).toBe(0);
         await expect(body.evaluate(el => el.scrollWidth - el.clientWidth)).resolves.toBeLessThanOrEqual(1);
-        await dialog.screenshot({ path: testInfo.outputPath('full-reference.png'), animations: 'disabled' });
+        await page.screenshot({ path: testInfo.outputPath('full-reference.png'), animations: 'disabled' });
 
         await dialog.getByText('Nothing is sent again automatically.', { exact: false }).scrollIntoViewIfNeeded();
         await expect.poll(() => body.evaluate(el => el.scrollTop)).toBeGreaterThan(0);
-        for (const control of [start, reference, footerClose, dialog.locator('.modal-close')]) {
+        for (const control of [start, reference, shortcuts, footerClose, dialog.locator('.modal-close')]) {
           await expect(control).toBeInViewport({ ratio: 1 });
         }
         if (touch) {
           expect(await page.evaluate(() => matchMedia('(any-pointer: coarse)').matches)).toBe(true);
-          for (const control of [opener, start, reference, footerClose, dialog.locator('.modal-close')]) {
+          for (const control of [opener, start, reference, shortcuts, footerClose, dialog.locator('.modal-close')]) {
             const box = await control.boundingBox();
             expect(box?.width).toBeGreaterThanOrEqual(48);
             expect(box?.height).toBeGreaterThanOrEqual(48);
@@ -62,7 +68,21 @@ for (const { name, viewport, touch } of [
 
         await start[activate]();
         await expect.poll(() => body.evaluate(el => el.scrollTop)).toBe(0);
-        await reference[activate]();
+        await shortcuts[activate]();
+        await expect(shortcuts).toHaveAttribute('aria-selected', 'true');
+        await expect(dialog.getByRole('tabpanel').getByRole('row')).toHaveCount(9);
+        await expect(body.evaluate(el => el.scrollWidth - el.clientWidth)).resolves.toBeLessThanOrEqual(1);
+        await expect(dialog.locator('.guide-tabs').evaluate(el => el.scrollWidth - el.clientWidth)).resolves.toBeLessThanOrEqual(1);
+        if (touch) {
+          for (const control of [start, reference, shortcuts, footerClose]) {
+            expect(await control.evaluate(el => {
+              const rect = el.getBoundingClientRect();
+              const viewport = window.visualViewport!;
+              return rect.right <= viewport.width + 1 && rect.bottom <= viewport.height + 1;
+            })).toBe(true);
+          }
+        }
+        await page.screenshot({ path: testInfo.outputPath('shortcuts.png'), animations: 'disabled' });
         await footerClose[activate]();
         await expect(dialog).toBeHidden();
         await expect(opener).toBeFocused();
@@ -103,17 +123,30 @@ test('desktop guide owns keyboard actions without changing the grid or week', as
   await page.keyboard.press('[');
   await expect(page.locator('#weekSelector')).toHaveValue(week);
   await page.keyboard.press('?');
-  await expect(page.locator('#helpOverlay')).not.toHaveClass(/active/);
+  await expect(reference).toHaveAttribute('aria-selected', 'true');
   await page.keyboard.press('Escape');
   await expect(dialog).toBeHidden();
   await expect(opener).toBeFocused();
   expect(await gridFocus.evaluate(el => el.parentElement?.outerHTML)).toBe(focusedCell);
   expect(await page.locator('#submitRequestBtn').isEnabled()).toBe(selection);
 
+  await page.locator('#weekSelector').focus();
   await page.keyboard.press('?');
-  await expect(page.locator('#helpOverlay')).toHaveClass(/active/);
-  await page.keyboard.press('Escape');
-  await expect(page.locator('#helpOverlay')).not.toHaveClass(/active/);
+  await expect(dialog).toBeHidden();
+
+  for (const key of ['Enter', 'Space']) {
+    await opener.focus();
+    await page.keyboard.press('?');
+    const shortcuts = dialog.getByRole('tab', { name: 'Shortcuts' });
+    await expect(shortcuts).toHaveAttribute('aria-selected', 'true');
+    await expect(shortcuts).toBeFocused();
+    await page.keyboard.press('Escape');
+    await expect(dialog).toBeHidden();
+    await expect(opener).toBeFocused();
+    await page.keyboard.press(key);
+    await expect(dialog.getByRole('tab', { name: 'Getting started' })).toHaveAttribute('aria-selected', 'true');
+    await page.keyboard.press('Escape');
+  }
 
   await opener.click();
   await dialog.click({ position: { x: 5, y: 5 } });

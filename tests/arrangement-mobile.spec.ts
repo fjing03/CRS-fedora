@@ -3469,10 +3469,7 @@ test.describe('T23a — mobile keyboard, sheet focus and announcements', () => {
     const selectedCells = await t23SelectedCanonicalCount(page);
     expect(selectedCells).toBeGreaterThan(0);
 
-    const helpActive = () => page.evaluate(() => {
-      const overlay = document.getElementById('helpOverlay');
-      return !!(overlay && overlay.classList.contains('active'));
-    });
+    const guide = page.locator('#guideModal');
 
     /* No sheet: [ and ] are stopped by the capture-phase guard; the rest reach
        the page handler and return before preventDefault on mobile. */
@@ -3490,7 +3487,7 @@ test.describe('T23a — mobile keyboard, sheet focus and announcements', () => {
     expect(mobileProbe.length, 'the legacy keys reached the document handler').toBeGreaterThan(0);
     expect(mobileProbe.every((entry) => entry.prevented === false),
       'mobile does not preventDefault native keys it does not own').toBe(true);
-    expect(await helpActive(), 'no help overlay on mobile').toBe(false);
+    await expect(guide, 'no guide shortcut on mobile').toBeHidden();
     expect(await currentWeekIndex(page)).toBe(weekBefore);
     expect(venueCodeOf(await venueLabel(page))).toBe(venueBefore);
     expect(await pressedDay(page)).toBe(pressedBefore);
@@ -3505,7 +3502,7 @@ test.describe('T23a — mobile keyboard, sheet focus and announcements', () => {
     }
     expect(await infoOpen(page), 'the sheet stays open').toBe(true);
     expect((await t23DialogCounters(page)).shows).toBe(sheetShows);
-    expect(await helpActive()).toBe(false);
+    await expect(guide).toBeHidden();
     expect(await currentWeekIndex(page)).toBe(weekBefore);
     expect(venueCodeOf(await venueLabel(page))).toBe(venueBefore);
     expect(await t23SelectedCanonicalCount(page)).toBe(selectedCells);
@@ -3543,9 +3540,9 @@ test.describe('T23a — mobile keyboard, sheet focus and announcements', () => {
        shortcuts while a select/input/textarea owns focus. */
     await page.locator('#tableBody .cell-content').first().focus();
     await page.keyboard.press('?');
-    expect(await helpActive(), 'the desktop ? shortcut still opens help').toBe(true);
+    await expect(guide.getByRole('tab', { name: 'Shortcuts' })).toHaveAttribute('aria-selected', 'true');
     await page.keyboard.press('Escape');
-    expect(await helpActive(), 'Escape still closes the help overlay').toBe(false);
+    await expect(guide).toBeHidden();
   });
 
   test('day, slot and selection changes speak once in the polite region and never repeat on resize', async ({ page }) => {

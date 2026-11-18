@@ -14,6 +14,9 @@
     $guideGroups = $guideGroups ?? [];
     $guideContentView = $guideContentView ?? null;
     $guideTabs = ['start' => 'Getting started', 'reference' => 'Full reference'];
+    if ($guideHasShortcuts ?? false) {
+        $guideTabs['shortcuts'] = 'Shortcuts';
+    }
     $guideLeft = ($guideContentView || $guideSubtitle || count($guideGroups) > 0);
 @endphp
 

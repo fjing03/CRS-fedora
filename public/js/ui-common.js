@@ -3110,7 +3110,7 @@ var GuideModal = {
         }
     },
 
-    open: function (opener) {
+    open: function (opener, tabKey = 'start') {
         var modal = document.getElementById('guideModal');
         if (!modal) return;
 
@@ -3119,11 +3119,13 @@ var GuideModal = {
         document.body.classList.add('summary-locked');
         if (opener) opener.setAttribute('aria-expanded', 'true');
 
-        const firstTab = modal.querySelector('.guide-tabs [role="tab"]');
-        if (firstTab) this.selectTab(firstTab);
+        const tabs = Array.from(modal.querySelectorAll('.guide-tabs [role="tab"]'));
+        const tab = tabs.find(button => button.id === 'guideTab-' + tabKey) || tabs[0];
+        if (tab) this.selectTab(tab);
 
-        var close = modal.querySelector('.modal-close') || modal.querySelector('.btn-close-modal');
-        if (close) close.focus({ preventScroll: true });
+        const close = modal.querySelector('.modal-close') || modal.querySelector('.btn-close-modal');
+        const focusTarget = tabKey === 'start' ? close : (tab || close);
+        if (focusTarget) focusTarget.focus({ preventScroll: true });
     },
 
     close: function () {

@@ -3086,6 +3086,10 @@ body.summary-sheet-open #summaryExplainModal {
 .modal-tab-panel.active { display: block; }
 
 /* Opt-in reading layout: the existing modal body scrolls under the tab rail. */
+.modal-overlay:has(> .modal--guide-tabs) {
+    max-width: 100vw;
+    max-height: 100dvh;
+}
 .modal.modal--guide.modal--guide-tabs {
     max-width: 600px;
 }
@@ -3138,6 +3142,13 @@ body.summary-sheet-open #summaryExplainModal {
 }
 @media (max-width: 600px) {
     .modal--guide-tabs .guide-tabs { margin-inline: 16px; }
+    .modal--guide-tabs .guide-tabs .modal-tab { padding-inline: 6px; }
+}
+@media (max-width: 360px) {
+    .modal--guide-tabs .guide-tabs .modal-tab {
+        font-size: 13px;
+        padding-inline: 4px;
+    }
 }
 @media (any-pointer: coarse) {
     .page-header:has(+ #guideModal .modal--guide-tabs) .guide-toggle-icon,
