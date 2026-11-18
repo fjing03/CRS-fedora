@@ -455,8 +455,12 @@ trait CancelsClasses
                 $q->where('week_number', $weekNumber)->where('day_of_week', $dayIndex);
             })
             ->get()
-            ->map(function (ReplacementRequest $r): array {
+            ->map(function (ReplacementRequest $r): ?array {
                 $slot = $r->replacementTimeSlot;
+                // The request and its eager-loaded slot are read separately.
+                if ($slot === null) {
+                    return null;
+                }
 
                 $session = $r->classSession;
 
@@ -476,6 +480,7 @@ trait CancelsClasses
                     'request' => (string) $r->status,
                 ];
             })
+            ->filter()
             ->values()
             ->all();
     }
