@@ -3070,6 +3070,46 @@ var FiltersPanel = {
 var GuideModal = {
     _opener: null,
 
+    isOpen: function () {
+        return document.getElementById('guideModal')?.style.display === 'flex';
+    },
+
+    selectTab: function (tab) {
+        const dialog = tab.closest('.modal--guide-tabs');
+        const panelId = tab.getAttribute('aria-controls');
+        dialog.querySelectorAll('[role="tab"]').forEach(function (button) {
+            const selected = button === tab;
+            button.classList.toggle('active', selected);
+            button.setAttribute('aria-selected', String(selected));
+            button.tabIndex = selected ? 0 : -1;
+        });
+        dialog.querySelectorAll('[role="tabpanel"]').forEach(function (panel) {
+            panel.hidden = panel.id !== panelId;
+        });
+        dialog.querySelector('.modal-body').scrollTop = 0;
+    },
+
+    handleKey: function (event, dialog) {
+        const key = event.key;
+        if (key === 'Tab') {
+            const controls = dialog.querySelectorAll('button:not([tabindex="-1"]), .modal-body');
+            const first = controls[0];
+            const last = controls[controls.length - 1];
+            if (event.shiftKey ? event.target === first : event.target === last) {
+                event.preventDefault();
+                (event.shiftKey ? last : first).focus();
+            }
+        } else if (event.target.matches('[role="tab"]') && ['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(key)) {
+            const tabs = Array.from(dialog.querySelectorAll('[role="tab"]'));
+            const index = tabs.indexOf(event.target);
+            const next = key === 'Home' ? 0 : key === 'End' ? tabs.length - 1
+                : (index + (key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length;
+            event.preventDefault();
+            this.selectTab(tabs[next]);
+            tabs[next].focus();
+        }
+    },
+
     open: function (opener) {
         var modal = document.getElementById('guideModal');
         if (!modal) return;
@@ -3078,6 +3118,9 @@ var GuideModal = {
         modal.style.display = 'flex';
         document.body.classList.add('summary-locked');
         if (opener) opener.setAttribute('aria-expanded', 'true');
+
+        const firstTab = modal.querySelector('.guide-tabs [role="tab"]');
+        if (firstTab) this.selectTab(firstTab);
 
         var close = modal.querySelector('.modal-close') || modal.querySelector('.btn-close-modal');
         if (close) close.focus({ preventScroll: true });
@@ -3100,8 +3143,10 @@ var GuideModal = {
 document.addEventListener('keydown', function (e) {
     if (e.key !== 'Escape') return;
     var modal = document.getElementById('guideModal');
-    if (modal && modal.style.display !== 'none') {
+    if (GuideModal.isOpen()) {
         e.preventDefault();
+        // The Arrangement grid must not see Escape after the guide has closed.
+        if (modal.querySelector('.modal--guide-tabs')) e.stopImmediatePropagation();
         GuideModal.close();
     }
 });

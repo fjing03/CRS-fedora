@@ -1,3 +1,9 @@
+## 2026-11-18 — two-tab “How to use this page” pilot
+
+The question-mark button now opens **Getting started** and **Full reference** instead of expanding the old inline help. Each open starts at the top of **Getting started**. The tabs and Close stay visible while the guide scrolls. The guide keeps booking shortcuts from firing behind it; the separate keyboard-shortcuts overlay is unchanged.
+
+This pilot uses the approved Arrangement wording and changes no booking rules. Only Arrangement opts in. The read-only Playwright receipt passed **9 checks**, covering desktop and touch phones at 390px and 320px in both themes, keyboard isolation, and both legacy guide layouts. Rollout to the other seven pages awaits approval.
+
 ## 2026-11-17 — the empty Class Details column is gone, and the schedule takes its space
 
 At rest — no course, no slot — Class Details held a full `5fr` column (248px at 1440, 294 at 1280)

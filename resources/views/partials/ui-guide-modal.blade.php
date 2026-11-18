@@ -12,12 +12,15 @@
        `guideGroups` ([[label, html], …]) to switch this instance only. */
     $guideSubtitle = $guideSubtitle ?? null;
     $guideGroups = $guideGroups ?? [];
-    $guideLeft = ($guideSubtitle || count($guideGroups) > 0);
+    $guideContentView = $guideContentView ?? null;
+    $guideTabs = ['start' => 'Getting started', 'reference' => 'Full reference'];
+    $guideLeft = ($guideContentView || $guideSubtitle || count($guideGroups) > 0);
 @endphp
 
 <div class="modal-overlay" id="guideModal" style="display:none"
      onclick="if(event.target===this)GuideModal.close()">
-    <div class="modal modal--guide{{ $guideLeft ? ' modal--guide-left' : '' }}" role="dialog"
+    <div class="modal modal--guide{{ $guideLeft ? ' modal--guide-left' : '' }}{{ $guideContentView ? ' modal--guide-tabs' : '' }}" role="dialog"
+         @if($guideContentView) onkeydown="GuideModal.handleKey(event, this)" @endif
          aria-modal="true" aria-labelledby="guideModalTitle">
         <div class="modal-header">
             <h3 class="modal-title" id="guideModalTitle">{{ $guideTitle }}@if($guideSubtitle)<span
@@ -25,23 +28,42 @@
             <button type="button" class="modal-close" data-tip="Close"
                     aria-label="Close" onclick="GuideModal.close()">✕</button>
         </div>
-        <div class="modal-body">
-            @if($guideDescriptionHtml)
-                <p class="page-desc">{!! $guideDescriptionHtml !!}</p>
-            @endif
-            @if(count($guideGroups) > 0)
-                @foreach($guideGroups as $group)
-                    <div class="detail-group">
-                        <div class="detail-group-title">{{ $group[0] }}</div>
-                        <p>{!! $group[1] !!}</p>
+        @if($guideContentView)
+            <div class="modal-tabs guide-tabs" role="tablist" aria-label="Guide sections">
+                @foreach($guideTabs as $guideTab => $label)
+                    <button type="button" class="modal-tab{{ $loop->first ? ' active' : '' }}" role="tab"
+                            id="guideTab-{{ $guideTab }}" aria-controls="guidePanel-{{ $guideTab }}"
+                            aria-selected="{{ $loop->first ? 'true' : 'false' }}" tabindex="{{ $loop->first ? '0' : '-1' }}"
+                            onclick="GuideModal.selectTab(this)">{{ $label }}</button>
+                @endforeach
+            </div>
+        @endif
+        <div class="modal-body" @if($guideContentView) tabindex="0" @endif>
+            @if($guideContentView)
+                @foreach($guideTabs as $guideTab => $label)
+                    <div class="guide-prose" role="tabpanel" id="guidePanel-{{ $guideTab }}"
+                         aria-labelledby="guideTab-{{ $guideTab }}" @if(!$loop->first) hidden @endif>
+                        @include($guideContentView, ['guideTab' => $guideTab])
                     </div>
                 @endforeach
-            @elseif(count($guideItems) > 0)
-                <ul class="guide-list">
-                    @foreach($guideItems as $item)
-                        <li>{!! $item !!}</li>
+            @else
+                @if($guideDescriptionHtml)
+                    <p class="page-desc">{!! $guideDescriptionHtml !!}</p>
+                @endif
+                @if(count($guideGroups) > 0)
+                    @foreach($guideGroups as $group)
+                        <div class="detail-group">
+                            <div class="detail-group-title">{{ $group[0] }}</div>
+                            <p>{!! $group[1] !!}</p>
+                        </div>
                     @endforeach
-                </ul>
+                @elseif(count($guideItems) > 0)
+                    <ul class="guide-list">
+                        @foreach($guideItems as $item)
+                            <li>{!! $item !!}</li>
+                        @endforeach
+                    </ul>
+                @endif
             @endif
         </div>
         <div class="modal-footer">

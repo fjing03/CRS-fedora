@@ -10,7 +10,7 @@ const LECTURER_PAGES = [
   { path: '/venue-timetable-ui', desc: "Inspect any venue's weekly occupancy" },
   { path: '/cohort-timetable', desc: 'View the weekly timetable' },
   { path: '/replacement-home-ui', desc: 'Every class that needs a replacement' },
-  { path: '/replacement-arrangement', desc: null },
+  // Arrangement's two-tab guide is covered in replacement-arrangement-guide.spec.ts.
 ];
 
 async function waitForGuide(page: Page): Promise<void> {

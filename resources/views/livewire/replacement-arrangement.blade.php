@@ -2485,17 +2485,11 @@
         </button>
     </div>
 
-    @include('partials.ui-page-header', ['guideToggle' => true])
+    @include('partials.ui-page-header', ['guideToggle' => true, 'guideModal' => true])
 
-        @include('partials.ui-guide-block', [
-            'showToggle' => false,
-            'guideItems' => [
-                '<strong>Select course</strong> — choose the course to arrange a replacement for',
-                '<strong>Slot status</strong> — Available (green), Unavailable (booked / Sunday / public holiday)',
-                '<strong>Select slot</strong> — click an available slot to propose it as the replacement',
-                '<strong>Submit</strong> — confirm your selection to send the request for approval',
-                '<strong>Back</strong> — use the back button to return to the conflict list',
-            ]
+        @include('partials.ui-guide-modal', [
+            'guideSubtitle' => 'Replacement Arrangement',
+            'guideContentView' => 'partials.guides.replacement-arrangement',
         ])
 
         <div class="booking-intent-wrap" id="bookingIntent"></div>
@@ -5038,6 +5032,8 @@
         }
 
         function handleKeyDown(e) {
+            if (GuideModal.isOpen()) return;
+
             const modal = document.getElementById('confirmModal');
             if (modal && modal.style.display === 'flex') {
                 if (e.key === 'Escape') hideConfirmModal(e);
@@ -5144,8 +5140,8 @@
         }
 
         /* T13: ui-common.js registers its own `[`/`]` week listener that knows
-           nothing about mobile mode or the information sheet. Intercept ONLY
-           those two keys in the capture phase while either state is active, so
+           nothing about mobile mode, the information sheet or the guide.
+           Intercept ONLY those two keys in capture while any is active, so
            the shared listener cannot navigate the hidden grid; every native
            key (Escape included) still reaches its real owner. Registered once
            at boot — resize never adds another listener. */
@@ -5153,7 +5149,7 @@
             if (!e || (e.key !== '[' && e.key !== ']')) return;
             const infoOpen = arrangementMobile?.isInfoOpen?.() === true;
             const mobile = arrangementMobile?.isMobile?.() === true;
-            if (!infoOpen && !mobile) return;
+            if (!infoOpen && !mobile && !GuideModal.isOpen()) return;
             e.preventDefault();
             e.stopImmediatePropagation();
         }

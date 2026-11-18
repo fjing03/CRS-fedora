@@ -3085,6 +3085,68 @@ body.summary-sheet-open #summaryExplainModal {
 .modal-tab-panel { display: none; }
 .modal-tab-panel.active { display: block; }
 
+/* Opt-in reading layout: the existing modal body scrolls under the tab rail. */
+.modal.modal--guide.modal--guide-tabs {
+    max-width: 600px;
+}
+.modal--guide-tabs .guide-tabs {
+    flex: 0 0 auto;
+    margin: 8px 22px 0;
+}
+.modal--guide-tabs .guide-tabs .modal-tab {
+    font-size: 14px;
+    -webkit-tap-highlight-color: transparent;
+}
+.modal--guide-tabs .guide-tabs .modal-tab.active { border-bottom-color: currentColor; }
+.modal--guide-tabs .modal-footer { border-top: 1px solid var(--color-outline); }
+.modal--guide-tabs .guide-prose {
+    color: var(--color-on-surface);
+    font-size: 14px;
+    line-height: 1.55;
+    overflow-wrap: anywhere;
+}
+.guide-prose h4 {
+    margin: 18px 0 6px;
+    font-size: 15px;
+    font-weight: 700;
+    line-height: 1.4;
+}
+.guide-prose > :first-child { margin-top: 0; }
+.guide-prose > :last-child { margin-bottom: 0; }
+.guide-prose p,
+.guide-prose ul { margin: 0 0 8px; }
+.guide-prose ul { padding-inline-start: 18px; list-style: disc; }
+.guide-prose li + li { margin-top: 5px; }
+.guide-prose table {
+    width: 100%;
+    table-layout: fixed;
+    border-collapse: collapse;
+    margin: 8px 0;
+}
+.guide-prose th,
+.guide-prose td {
+    padding: 8px;
+    text-align: start;
+    vertical-align: top;
+    border-bottom: 1px solid var(--color-outline-variant);
+}
+.guide-prose th { background: var(--color-surface-variant); }
+.guide-prose th:first-child { width: 34%; }
+.modal--guide-tabs :is(.modal-tab, .modal-body):focus-visible {
+    outline: 2px solid var(--color-on-primary-container);
+    outline-offset: -2px;
+}
+@media (max-width: 600px) {
+    .modal--guide-tabs .guide-tabs { margin-inline: 16px; }
+}
+@media (any-pointer: coarse) {
+    .page-header:has(+ #guideModal .modal--guide-tabs) .guide-toggle-icon,
+    .modal.modal--guide-tabs :is(.modal-tab, .modal-close, .btn-close-modal) {
+        min-width: 48px;
+        min-height: 48px;
+    }
+}
+
 /* ── Semester bar / week-picker ────────────────────────────── */
 .semester-bar {
     display: flex;
