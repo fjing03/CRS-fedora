@@ -1,3 +1,7 @@
+## 2026-11-18 — mobile guide shows only the two reading tabs
+
+**Shortcuts** is hidden in the mobile timetable, where the grid keys do not run. It remains available in desktop view, including on a touch-capable laptop. If the window narrows while Shortcuts is open, the guide switches to **Getting started**.
+
 ## 2026-11-18 — keyboard shortcuts in the page guide
 
 The guide now has a **Shortcuts** tab with the desktop grid keys. Pressing `?` in the desktop timetable opens that tab directly instead of opening a separate overlay. The help button (including Enter or Space on it) still opens **Getting started**. The keyboard shortcut stays inactive in mobile view and in text fields or dropdowns. All three tabs fit at 320px with touch targets of at least 48px.

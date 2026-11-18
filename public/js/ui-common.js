@@ -3074,6 +3074,23 @@ var GuideModal = {
         return document.getElementById('guideModal')?.style.display === 'flex';
     },
 
+    visibleTabs: function (dialog) {
+        return Array.from(dialog.querySelectorAll('.guide-tabs [role="tab"]'))
+            .filter(button => button.getClientRects().length > 0);
+    },
+
+    resetHiddenTab: function () {
+        if (!this.isOpen()) return;
+        const modal = document.getElementById('guideModal');
+        const selected = modal.querySelector('.guide-tabs [aria-selected="true"]');
+        if (!selected || selected.getClientRects().length > 0) return;
+
+        const first = this.visibleTabs(modal)[0];
+        if (!first) return;
+        this.selectTab(first);
+        first.focus({ preventScroll: true });
+    },
+
     selectTab: function (tab) {
         const dialog = tab.closest('.modal--guide-tabs');
         const panelId = tab.getAttribute('aria-controls');
@@ -3100,7 +3117,7 @@ var GuideModal = {
                 (event.shiftKey ? last : first).focus();
             }
         } else if (event.target.matches('[role="tab"]') && ['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(key)) {
-            const tabs = Array.from(dialog.querySelectorAll('[role="tab"]'));
+            const tabs = this.visibleTabs(dialog);
             const index = tabs.indexOf(event.target);
             const next = key === 'Home' ? 0 : key === 'End' ? tabs.length - 1
                 : (index + (key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length;
@@ -3119,7 +3136,7 @@ var GuideModal = {
         document.body.classList.add('summary-locked');
         if (opener) opener.setAttribute('aria-expanded', 'true');
 
-        const tabs = Array.from(modal.querySelectorAll('.guide-tabs [role="tab"]'));
+        const tabs = this.visibleTabs(modal);
         const tab = tabs.find(button => button.id === 'guideTab-' + tabKey) || tabs[0];
         if (tab) this.selectTab(tab);
 
@@ -3141,6 +3158,8 @@ var GuideModal = {
         this._opener = null;
     }
 };
+
+window.addEventListener('resize', function () { GuideModal.resetHiddenTab(); });
 
 document.addEventListener('keydown', function (e) {
     if (e.key !== 'Escape') return;

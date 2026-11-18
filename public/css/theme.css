@@ -3144,11 +3144,9 @@ body.summary-sheet-open #summaryExplainModal {
     .modal--guide-tabs .guide-tabs { margin-inline: 16px; }
     .modal--guide-tabs .guide-tabs .modal-tab { padding-inline: 6px; }
 }
-@media (max-width: 360px) {
-    .modal--guide-tabs .guide-tabs .modal-tab {
-        font-size: 13px;
-        padding-inline: 4px;
-    }
+/* Match ArrangementMobile's breakpoint: this view has no grid shortcuts. */
+@media (max-width: 768px) {
+    .modal--guide-tabs #guideTab-shortcuts { display: none; }
 }
 @media (any-pointer: coarse) {
     .page-header:has(+ #guideModal .modal--guide-tabs) .guide-toggle-icon,

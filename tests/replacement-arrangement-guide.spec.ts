@@ -21,13 +21,13 @@ for (const { name, viewport, touch } of [
   test.describe(name, () => {
     test.use({ viewport, isMobile: touch, hasTouch: touch });
     for (const theme of ['light', 'dark']) {
-      test(`${theme}: three tabs, reading scroll and reset`, async ({ page }, testInfo) => {
+      test(`${theme}: visible tabs, reading scroll and reset`, async ({ page }, testInfo) => {
         await page.addInitScript(value => localStorage.setItem('theme', value), theme);
         const { opener, dialog } = await openArrangement(page);
         await expect(page.locator('html')).toHaveClass(theme === 'dark' ? /\bdark\b/ : /^(?!.*\bdark\b)/);
         const start = dialog.getByRole('tab', { name: 'Getting started' });
         const reference = dialog.getByRole('tab', { name: 'Full reference' });
-        const shortcuts = dialog.getByRole('tab', { name: 'Shortcuts' });
+        const shortcuts = dialog.locator('#guideTab-shortcuts');
         const body = dialog.locator('.modal-body');
         const footerClose = dialog.locator('.btn-close-modal');
         const activate = touch ? 'tap' : 'click';
@@ -54,12 +54,13 @@ for (const { name, viewport, touch } of [
 
         await dialog.getByText('Nothing is sent again automatically.', { exact: false }).scrollIntoViewIfNeeded();
         await expect.poll(() => body.evaluate(el => el.scrollTop)).toBeGreaterThan(0);
-        for (const control of [start, reference, shortcuts, footerClose, dialog.locator('.modal-close')]) {
+        const tabs = touch ? [start, reference] : [start, reference, shortcuts];
+        for (const control of [...tabs, footerClose, dialog.locator('.modal-close')]) {
           await expect(control).toBeInViewport({ ratio: 1 });
         }
         if (touch) {
           expect(await page.evaluate(() => matchMedia('(any-pointer: coarse)').matches)).toBe(true);
-          for (const control of [opener, start, reference, shortcuts, footerClose, dialog.locator('.modal-close')]) {
+          for (const control of [opener, ...tabs, footerClose, dialog.locator('.modal-close')]) {
             const box = await control.boundingBox();
             expect(box?.width).toBeGreaterThanOrEqual(48);
             expect(box?.height).toBeGreaterThanOrEqual(48);
@@ -68,21 +69,28 @@ for (const { name, viewport, touch } of [
 
         await start[activate]();
         await expect.poll(() => body.evaluate(el => el.scrollTop)).toBe(0);
-        await shortcuts[activate]();
-        await expect(shortcuts).toHaveAttribute('aria-selected', 'true');
-        await expect(dialog.getByRole('tabpanel').getByRole('row')).toHaveCount(9);
-        await expect(body.evaluate(el => el.scrollWidth - el.clientWidth)).resolves.toBeLessThanOrEqual(1);
-        await expect(dialog.locator('.guide-tabs').evaluate(el => el.scrollWidth - el.clientWidth)).resolves.toBeLessThanOrEqual(1);
         if (touch) {
-          for (const control of [start, reference, shortcuts, footerClose]) {
+          await expect(shortcuts).toBeHidden();
+          await reference.focus();
+          await page.keyboard.press('ArrowRight');
+          await expect(start).toBeFocused();
+          await expect(start).toHaveAttribute('aria-selected', 'true');
+          await reference.tap();
+          for (const control of [...tabs, footerClose]) {
             expect(await control.evaluate(el => {
               const rect = el.getBoundingClientRect();
               const viewport = window.visualViewport!;
               return rect.right <= viewport.width + 1 && rect.bottom <= viewport.height + 1;
             })).toBe(true);
           }
+        } else {
+          await shortcuts.click();
+          await expect(shortcuts).toHaveAttribute('aria-selected', 'true');
+          await expect(dialog.getByRole('tabpanel').getByRole('row')).toHaveCount(9);
+          await expect(body.evaluate(el => el.scrollWidth - el.clientWidth)).resolves.toBeLessThanOrEqual(1);
+          await page.screenshot({ path: testInfo.outputPath('shortcuts.png'), animations: 'disabled' });
         }
-        await page.screenshot({ path: testInfo.outputPath('shortcuts.png'), animations: 'disabled' });
+        await expect(dialog.locator('.guide-tabs').evaluate(el => el.scrollWidth - el.clientWidth)).resolves.toBeLessThanOrEqual(1);
         await footerClose[activate]();
         await expect(dialog).toBeHidden();
         await expect(opener).toBeFocused();
@@ -152,6 +160,15 @@ test('desktop guide owns keyboard actions without changing the grid or week', as
   await dialog.click({ position: { x: 5, y: 5 } });
   await expect(dialog).toBeHidden();
   await expect(opener).toBeFocused();
+
+  await page.keyboard.press('?');
+  const shortcutTab = dialog.locator('#guideTab-shortcuts');
+  await expect(shortcutTab).toHaveAttribute('aria-selected', 'true');
+  await page.setViewportSize({ width: 600, height: 800 });
+  await expect(shortcutTab).toBeHidden();
+  const startTab = dialog.getByRole('tab', { name: 'Getting started' });
+  await expect(startTab).toHaveAttribute('aria-selected', 'true');
+  await expect(startTab).toBeFocused();
 });
 
 for (const { path, content } of [
