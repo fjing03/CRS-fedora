@@ -1,12 +1,12 @@
 @if($guideTab === 'start')
     <h4>1. Choose the original class</h4>
-    <p>Choose <strong>Course</strong>, then <strong>Slot</strong>. On a phone, open <strong>Select a course and original slot</strong> first.</p>
+    <p>On a phone, open <strong>Select a course and original slot</strong>. Choose <strong>Course</strong>, then <strong>Slot</strong>, and check the original date.</p>
     <h4>2. Pick a venue and date</h4>
-    <p>Choose a <strong>Venue</strong> and a date <strong>at least three working days after today</strong>. Count weekdays and skip public holidays.</p>
+    <p>Choose a <strong>Venue</strong>. Pick a date <strong>at least three working days after today</strong>, counting only weekdays that aren’t public holidays.</p>
     <h4>3. Select a time that fits</h4>
-    <p>Pick a green <strong>Available</strong> start time. The whole class must fit in one block.</p>
+    <p>Pick an <strong>Available</strong> start time. If the whole class fits, the page selects the full block.</p>
     <h4>4. Review and send</h4>
-    <p>Check the venue, date and full time range. Choose <strong>Submit Request</strong>, then confirm.</p>
+    <p>Choose <strong>Submit Request</strong> to review the venue, date and time range. Choose <strong>Yes, Submit Request</strong> to send.</p>
     <p>Track it in <strong>My Replacements</strong>. The new time is not confirmed until a Programme Leader approves it. If it is still <strong>Pending</strong> with <strong>three working hours or less</strong> before the proposed start, it is automatically rejected.</p>
 @elseif($guideTab === 'reference')
     <h4>Original class and replacement slot</h4>

@@ -1,3 +1,7 @@
+## 2026-11-18 — clearer getting-started instructions
+
+The four steps now tell the lecturer to check the original date, count weekdays that aren’t public holidays, look for the full selected block, and distinguish **Submit Request** (review) from **Yes, Submit Request** (send). The approval deadline, other tabs and booking behavior are unchanged.
+
 ## 2026-11-18 — guide typography
 
 The guide keeps the system typeface. Its title leads more clearly, prose is 15px at default text size, and inline emphasis is lighter than the numbered and reference headings. Tables stay compact at 14px, with shortcut keys in the same family. Text wraps within the existing reading pane, and wording and controls are unchanged.
