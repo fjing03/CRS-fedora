@@ -645,6 +645,11 @@
             }
         }
 
+        .tt-responsive[data-tt-page="venue"] .legend-hint {
+            opacity: 1;
+            font-style: normal;
+        }
+
         /* The day strip and grid already show the date. Keep the room, count
            and Week summary together when the full room picker scrolls away. */
         @media (max-width: 1279px) {
@@ -750,6 +755,7 @@
             'ttReadonly' => false,
             'ttStickyTools' => true,
             'ttToolsRoom' => $venue['code'] ?? null,
+            'ttSummaryLabel' => 'Legend & summary',
         ])
     </div>
 
@@ -784,7 +790,10 @@
     <!-- ─── Legend Bar ─── 5 items + ownership hint (venue-event-blocks-db design §2,
          frozen upstream design at f8b35a2). Available tip stays honest for the
          read-only page (booking = Slice B); swatches carry real block classes. -->
-    @include('partials.ui-legend-bar', ['ownershipHint' => true, 'items' => [
+    @include('partials.ui-legend-bar', ['ownershipHint' => true, 'wrapLegendTips' => true, 'legendHints' => [
+        'hover' => 'Hover over a legend item to see what it means.',
+        'touch' => 'Tap a legend item to see what it means.',
+    ], 'items' => [
         ['color' => 'var(--color-success-container)', 'label' => 'Available', 'tip' => "Free slot — click to arrange a replacement in this venue (Sunday, holiday slots and slots less than 3 working days away can't be booked)"],
         ['class' => 'event-normal', 'label' => 'Normal', 'tip' => 'Scheduled class with no issues'],
         ['class' => 'event-replacement', 'label' => 'Replacement', 'tip' => 'Approved replacement session — the class ran at its NEW slot (an approved request renders here as the dark block)'],

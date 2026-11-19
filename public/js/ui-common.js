@@ -5075,6 +5075,7 @@ function initDataTipTooltips() {
         var tipText = el.getAttribute('data-tip') || '';
         if (!tipText) { hide(); return; }
         tip.textContent = tipText;
+        tip.classList.toggle('data-tip-tooltip--wrap', el.hasAttribute('data-tip-wrap'));
         /* SDD tidy-arrangement-cell-tooltips (2026-10-27): the multi-line
            tips (the arrangement's conflict-state header + one block per
            class) render pre-line; every existing single-line tooltip stays

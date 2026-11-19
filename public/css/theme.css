@@ -6108,6 +6108,12 @@ body.filters-panel-open .filters-btn { position:relative; z-index:1300; }
 .data-tip-tooltip.data-tip-tooltip--multi {
     white-space: pre-line;
 }
+.data-tip-tooltip.data-tip-tooltip--wrap {
+    box-sizing: border-box;
+    max-width: calc(100vw - 8px);
+    white-space: pre-line;
+    overflow-wrap: anywhere;
+}
 .data-tip-tooltip {
     position: fixed;
     padding: 5px 10px;

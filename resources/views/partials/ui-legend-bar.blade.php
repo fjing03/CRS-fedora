@@ -5,10 +5,11 @@
         ['class' => 'event-pending', 'label' => 'Pending', 'tip' => 'Replacement request awaiting approval'],
         ['class' => 'event-conflict', 'label' => 'Conflict / Public Holiday', 'tip' => 'Scheduling conflict or public holiday — this class will not run as scheduled'],
     ];
+    $legendHints = $legendHints ?? [];
 @endphp
 
 <div class="legend-bar">
-    <span class="legend-hint" aria-hidden="true"><span class="hint-hover">Hover a colour to learn more</span><span class="hint-touch">Tap a colour to learn more</span></span>
+    <span class="legend-hint" aria-hidden="true"><span class="hint-hover">{{ $legendHints['hover'] ?? 'Hover a colour to learn more' }}</span><span class="hint-touch">{{ $legendHints['touch'] ?? 'Tap a colour to learn more' }}</span></span>
     <div class="legend-items">
         @foreach($items as $item)
             {{-- The hint promises a tap on a touch screen; without a focus stop that promise cannot be
@@ -19,7 +20,7 @@
                  makes the child spans presentational, so the label must carry the colour name AND the
                  meaning. The 48px floor that goes with this lives in theme.css. --}}
             <div class="legend-item"
-                 @if(!empty($item['tip'])) data-tip="{{ $item['tip'] }}" tabindex="0" role="img" aria-label="{{ $item['label'] }}: {{ $item['tip'] }}" @endif>
+                 @if(!empty($item['tip'])) data-tip="{{ $item['tip'] }}" @if(!empty($wrapLegendTips)) data-tip-wrap @endif tabindex="0" role="img" aria-label="{{ $item['label'] }}: {{ $item['tip'] }}" @endif>
                 {{-- Swatches carry the real block class so the legend shows the
                      exact status styling (fill + border) instead of a flat colour. --}}
                 <span class="legend-swatch{{ empty($item['class']) ? '' : ' '.$item['class'] }}" @if(empty($item['class'])) style="background: {{ $item['color'] }};" @endif></span>

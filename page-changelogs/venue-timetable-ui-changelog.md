@@ -1,3 +1,7 @@
+## 2026-11-19 — make the colour key easier to find and read
+
+The phone and tablet button now says **Legend & summary**. The legend explains whether to tap or hover over an item, with clearer contrast in both themes. Longer explanations wrap to fit narrow screens. The desktop legend remains inline, and the print key is unchanged.
+
 ## 2026-11-19 — room information opens on tap or click
 
 The info icon beside capacity opens the selected room’s note. Tap or click again to close it. The icon has a 48px minimum target on touch, and rooms without a note don’t show an info icon.

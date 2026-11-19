@@ -27,6 +27,7 @@
     $ttWeekNav = $ttWeekNav ?? null;
     $ttStickyTools = $ttStickyTools ?? false;
     $ttToolsRoom = $ttToolsRoom ?? null;
+    $ttSummaryLabel = $ttSummaryLabel ?? 'Week summary';
 @endphp
 
 {{-- the caller's week row is wrapped HERE (a static wrap in the blade) so it is
@@ -61,7 +62,7 @@
             <path d="M12 16V5"/>
             <path d="M17 16V8"/>
         </svg>
-        <span>Week summary</span>
+        <span>{{ $ttSummaryLabel }}</span>
     </button>
 </div>
 @if($ttStickyTools)
@@ -85,9 +86,9 @@
 <div class="tt-sheet-overlay" id="ttSheet" hidden>
     <div class="tt-sheet" role="dialog" aria-modal="true" aria-labelledby="ttSheetTitle">
         <div class="tt-sheet-head">
-            <h2 class="tt-sheet-title" id="ttSheetTitle">Week summary<span
+            <h2 class="tt-sheet-title" id="ttSheetTitle">{{ $ttSummaryLabel }}<span
                     class="tt-sheet-subtitle" id="ttSheetSubtitle"></span></h2>
-            <button type="button" class="tt-sheet-close" aria-label="Close week summary">&times;</button>
+            <button type="button" class="tt-sheet-close" aria-label="Close {{ strtolower($ttSummaryLabel) }}">&times;</button>
         </div>
         <div class="tt-sheet-body" id="ttSheetBody" wire:ignore></div>
         {{-- the sheet's foot: the prototype puts a full-width Close here, and it is
