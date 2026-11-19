@@ -2,7 +2,7 @@
 <html lang="en" class="dark">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, interactive-widget=resizes-content">
     <title>{{ $title }} Login — Class Replacement System</title>
     <script>
         (function() {
@@ -143,6 +143,8 @@
             100% { opacity: 1; transform: scale(1); }
         }
 
+        .login-heading { display: contents; }
+
         .logo-area {
             display: flex;
             flex-direction: column;
@@ -174,8 +176,7 @@
         /* ── Daily motivational quote (SDD `login-daily-quote`, 2026-11-19) ──
            One athlete quote per weekday, under the title and above the form.
            It is DECORATION, so it never wins space against the Log in button:
-           hidden under 769px wide and under 700px tall, where the card already
-           fills the window. `display` is toggled in CSS before first paint —
+           hidden below 769px wide or 840px tall to leave room for the form. `display` is toggled in CSS before first paint —
            nothing measures, observes or animates it, so there is no jump.
            The reveal MUST stay after the base rule (equal specificity, last
            wins). Spacing is explicit because theme.css's `*` reset zeroes the
@@ -238,7 +239,7 @@
         }
         .light .login-quote-avatar img { filter: none; }
 
-        @media (min-width: 769px) and (min-height: 700px) {
+        @media (min-width: 769px) and (min-height: 840px) {
             .login-quote { display: block; }
         }
 
@@ -456,6 +457,28 @@
             .login-card { padding: 28px 20px 24px; border-radius: var(--radius-xl); }
         }
 
+        /* Give the form the height first; keep normal scrolling if an alert
+           or the keyboard leaves less room than the form needs. */
+        @media (max-height: 600px) {
+            .login-card { padding-block: 14px 16px; }
+            .login-heading {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 10px;
+                margin-bottom: 10px;
+            }
+            .logo-area { margin-bottom: 0; flex: 0 1 100px; }
+            .page-title { margin-bottom: 0; font-size: 18px; letter-spacing: 1px; }
+            .input-group { margin-bottom: 10px; }
+            .input-group label { margin-bottom: 4px; }
+            .role-switch { margin-top: 12px; }
+        }
+        @media (max-height: 600px) and (max-width: 768px) {
+            body { padding-top: 64px; }
+            .theme-toggle { top: 8px; }
+        }
+
         /* 2026-11-16 (user): 48 x 48px targets on TOUCH-CAPABLE devices ONLY —
            capability (`any-pointer: coarse`), not width (my-coding-rules.md #9).
            A touch laptop or an iPad Pro at any width qualifies; a mouse-only
@@ -489,11 +512,12 @@
     </button>
 
     <div class="login-card">
-        <div class="logo-area">
-            <img src="/images/logo_banner.png" alt="TAR UMT" class="logo-img">
+        <div class="login-heading">
+            <div class="logo-area">
+                <img src="/images/logo_banner.png" alt="TAR UMT" class="logo-img">
+            </div>
+            <div class="page-title">{{ $title }} Login</div>
         </div>
-
-        <div class="page-title">{{ $title }} Login</div>
 
         @include('partials.login-quote', ['quote' => \App\Support\LoginQuote::today()])
 
