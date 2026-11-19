@@ -17,9 +17,9 @@
     <link rel="stylesheet" href="/css/theme.css">
     <style>
         :root {
-            --input-bg: color-mix(in srgb, var(--color-surface-variant) 30%, transparent);
+            --input-bg: var(--color-surface-variant);
             --input-border: var(--color-outline);
-            --card-bg: color-mix(in srgb, var(--color-surface) 65%, transparent);
+            --card-bg: color-mix(in srgb, var(--color-surface) 92%, transparent);
             --card-border: var(--color-outline);
             --shadow-card: var(--shadow-lg);
             --login-btn-bg: var({{ $btnColorToken }});
@@ -29,10 +29,7 @@
             --login-spinner-color: var({{ $spinnerColorToken }});
         }
         .light {
-            --input-bg: color-mix(in srgb, var(--color-surface-variant) 40%, transparent);
-            --input-border: var(--color-outline);
-            --card-bg: color-mix(in srgb, var(--color-surface) 60%, transparent);
-            --card-border: var(--color-outline);
+            --card-bg: color-mix(in srgb, var(--color-surface) 94%, transparent);
             --shadow-card: 0 24px 80px rgba(0,0,0,0.08);
         }
 
@@ -270,11 +267,8 @@
             border-radius: var(--radius-lg);
             transition: border-color 0.3s ease, box-shadow 0.3s ease, background 0.3s ease;
         }
-        .input-wrapper:hover { background: rgba(84, 92, 102, 0.18); }
-        .light .input-wrapper:hover { background: rgba(217, 223, 230, 0.35); }
         .input-wrapper:focus-within {
             border-color: var(--color-primary);
-            background: var(--input-bg);
             box-shadow: 0 0 0 3px rgba(0, 77, 152, 0.1);
         }
         .light .input-wrapper:focus-within { box-shadow: 0 0 0 3px rgba(0, 77, 152, 0.08); }
@@ -303,8 +297,11 @@
             font-weight: 400;
             transition: color 0.3s;
         }
-        .input-wrapper input::placeholder { color: rgba(212, 220, 230, 0.3); transition: color 0.3s; }
-        .light .input-wrapper input::placeholder { color: rgba(84, 92, 102, 0.3); }
+        .input-wrapper input::placeholder {
+            color: var(--color-on-surface-variant);
+            opacity: 1;
+            transition: color 0.3s;
+        }
         .input-wrapper input:focus::placeholder { color: transparent; }
 
         .toggle-pw {
@@ -316,12 +313,11 @@
             display: flex;
             align-items: center;
             font-size: 18px;
-            opacity: 0.35;
-            transition: opacity 0.25s, color 0.25s;
+            transition: color 0.25s;
             flex-shrink: 0;
         }
-        .toggle-pw:hover { opacity: 0.7; }
-        .input-wrapper:focus-within .toggle-pw { opacity: 0.6; }
+        .toggle-pw:hover,
+        .toggle-pw:focus-visible { color: var(--color-on-surface); }
 
         .login-btn {
             width: 100%;
@@ -387,12 +383,20 @@
             animation: fadeSlideUp 0.6s ease 0.55s both;
         }
         .role-switch a {
-            color: var(--color-primary);
+            color: var(--color-on-primary-container);
             text-decoration: none;
             font-weight: 500;
-            transition: opacity 0.2s;
         }
-        .role-switch a:hover { opacity: 0.75; }
+        .role-switch a:hover,
+        .role-switch a:focus-visible { text-decoration: underline; }
+
+        /* Keep the footer's translucent scrim; only this login shell needs
+           stronger light-mode text against the photographs. */
+        .light .ui-footer--fixed,
+        .light .ui-footer--fixed :is(.ui-footer-owner, .ui-footer-note, .ui-footer-link) {
+            color: var(--color-on-surface);
+        }
+        .light .ui-footer--fixed .ui-footer-link:hover { text-decoration: underline; }
 
         .error-msg {
             background: color-mix(in srgb, var(--color-error) 15%, transparent);
@@ -410,7 +414,6 @@
             color: var(--color-on-surface-variant);
             margin-top: 4px;
             padding-left: 2px;
-            opacity: 0.6;
         }
         .format-hint.is-invalid {
             padding: 4px 8px;
@@ -420,25 +423,7 @@
             opacity: 1;
         }
 
-        /* ── Phone / narrow: keep the photo as a frame, not as a filter over the
-              form. At 65% the sky and grass read straight through the card and the
-              12px hint + placeholder washed out to nearly nothing (light mode was
-              the worst). Still colour-mix tokens only, no new colour. ── */
         @media (max-width: 768px) {
-            :root {
-                --card-bg: color-mix(in srgb, var(--color-surface) 88%, transparent);
-                /* the fields used to be ~70% transparent, so a bright cloud moved
-                   behind them as the page scrolled and the text washed out with it.
-                   They keep the same colour family, just denser. */
-                --input-bg: color-mix(in srgb, var(--color-surface-variant) 70%, transparent);
-            }
-            .light {
-                --card-bg: color-mix(in srgb, var(--color-surface) 94%, transparent);
-                --input-bg: color-mix(in srgb, var(--color-surface-variant) 80%, transparent);
-            }
-            .format-hint { opacity: 0.85; }
-            .input-wrapper input::placeholder { color: rgba(212, 220, 230, 0.5); }
-            .light .input-wrapper input::placeholder { color: rgba(84, 92, 102, 0.5); }
             /* the theme toggle is fixed at the top-right; on a screen too short to
                centre the card, the card starts at the top edge — reserve the toggle's
                band so the two never sit on each other, and let the toggle scroll with
