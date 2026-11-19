@@ -601,16 +601,23 @@
             }
         }
 
-        /* the tools row: count + Summary only — the selected date / window range is
-           NEVER repeated above the grid at ANY responsive width (the strip and the
-           grid headers already name the days; the count line speaks the window).
-           Prototype contract (venue-timetable-responsive-preview.html lines 20–28).
-           The module still writes its window heading; the page hides it below 1280
-           with CSS, so no JS fixups are needed. (Was phone-only 767 before the
-           contract-finish check caught the tablet windows repeating the range.) */
+        /* The day strip and grid already show the date. Keep the room, count
+           and Week summary together when the full room picker scrolls away. */
         @media (max-width: 1279px) {
             .tt-responsive[data-tt-page="venue"] .tt-day-heading {
                 display: none;
+            }
+            .tt-responsive[data-tt-page="venue"] .tt-room-code {
+                font-size: 12px;
+                font-weight: 600;
+                color: var(--color-on-surface);
+            }
+        }
+
+        /* Recover vertical room in short landscape windows without shrinking targets. */
+        @media (max-width: 1279px) and (max-height: 480px) {
+            .tt-responsive[data-tt-page="venue"] .tt-sticky .tt-tools {
+                margin-block: 6px;
             }
         }
 
@@ -692,7 +699,12 @@
                 </div>
             </div>
         </div>
-        @include('partials.ui-tt-chrome', ['ttWeekNav' => $ttWeekNav, 'ttReadonly' => false])
+        @include('partials.ui-tt-chrome', [
+            'ttWeekNav' => $ttWeekNav,
+            'ttReadonly' => false,
+            'ttStickyTools' => true,
+            'ttToolsRoom' => $venue['code'] ?? null,
+        ])
     </div>
 
     <!-- ─── Grid Wrapper ─── -->
@@ -2270,12 +2282,27 @@
                     ? (host.querySelector('[data-free-day="' + di + '"][data-free-slot="' + slot + '"]')
                         || host.querySelector('[data-free-day="' + di + '"]'))
                     : host.querySelector('[data-free-day="' + di + '"]');
-                if (cell) {
-                    cell.scrollIntoView({ block: 'center', behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth' });
-                    try { cell.focus({ preventScroll: true }); } catch (e) {}
-                } else {
-                    host.scrollIntoView({ block: 'start', behavior: 'instant' });
-                }
+                if (cell) cell.focus({ preventScroll: true });
+
+                var sticky = document.getElementById('ttSticky');
+                if (!sticky) return;
+                var chrome = sticky.getBoundingClientRect();
+                var target = cell || host;
+                var box = target.getBoundingClientRect();
+                if (box.top >= chrome.bottom && box.bottom <= window.innerHeight) return;
+
+                // Measure where the chrome will dock, not its lower position
+                // before the room picker scrolls away.
+                var dockedBottom = (parseFloat(getComputedStyle(sticky).top) || 0) + chrome.height;
+                var gridTop = host.getBoundingClientRect().top;
+                var openHeight = window.innerHeight - dockedBottom;
+                // Keep the grid header too when it and the target fit together.
+                var anchorTop = box.bottom - gridTop <= openHeight ? gridTop : box.top;
+                var gap = Math.min(8, Math.max(0, Math.floor(openHeight - (box.bottom - anchorTop))));
+                window.scrollTo({
+                    top: Math.max(0, Math.floor(window.scrollY + anchorTop - dockedBottom - gap)),
+                    behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth'
+                });
             }
 
             /* ── THE init — one cfg, idempotent, one week source ──
@@ -2283,8 +2310,8 @@
                module's closures hand back the SAME week. The phone band IS the
                shared _buildWindow now (bands.phoneMode 'window' — the shared
                followup): the same transposed bookable grid at width 1, no page
-               renderer. sticky keeps the default (the week/day controls stay
-               pinned; the room row sits OUTSIDE the chrome and scrolls away).
+               renderer. The week/day controls and compact tools stay pinned;
+               the full room picker sits outside the chrome and scrolls away.
                emptyWeekPanel:false keeps the room's timeline and the desktop
                grid painting even on a week with zero class events (a free room
                is a bookable surface, not an empty state). */

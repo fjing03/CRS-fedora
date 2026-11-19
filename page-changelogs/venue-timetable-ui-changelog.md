@@ -1,3 +1,7 @@
+## 2026-11-19 — Earliest bookable keeps the room in view
+
+Phone and tablet keep the room code and Week summary next to the sticky date controls. Earliest bookable still jumps to the same slot, scrolling only if necessary to bring it below those controls. The desktop grid and booking rules are unchanged.
+
 ## 2026-11-19 — Select a Session fits on phones
 
 Subject and Session labels stack on narrow phones. The full session date and time can wrap, keeping the chevron and dropdown choices inside the dialog. Wider views keep their two-column form. Booking behavior is unchanged.

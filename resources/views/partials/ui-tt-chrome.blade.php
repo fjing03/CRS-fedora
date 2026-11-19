@@ -25,6 +25,8 @@
     $ttScope = $ttScope ?? 'tt-responsive';
     $ttReadonly = $ttReadonly ?? false;
     $ttWeekNav = $ttWeekNav ?? null;
+    $ttStickyTools = $ttStickyTools ?? false;
+    $ttToolsRoom = $ttToolsRoom ?? null;
 @endphp
 
 {{-- the caller's week row is wrapped HERE (a static wrap in the blade) so it is
@@ -36,11 +38,16 @@
         {!! $ttWeekNav !!}
     @endif
     <div class="tt-days" id="ttDayStrip" role="group" aria-label="Days of the week"></div>
+@if(!$ttStickyTools)
 </div>
+@endif
 
 <div class="tt-tools" id="ttTools" hidden>{{-- ships hidden; TimetableResponsive.sync() unhides it below 1280 (R6) --}}
     <div class="tt-heading-block">
         <h2 class="tt-day-heading" id="ttDayHeading"></h2>
+        @if($ttToolsRoom)
+            <span class="tt-room-code">Room {{ $ttToolsRoom }}</span>
+        @endif
         <span class="tt-day-count" id="ttDayCount"></span>
     </div>
     <button type="button" class="tt-summary-btn" id="ttSummaryButton"
@@ -57,6 +64,9 @@
         <span>Week summary</span>
     </button>
 </div>
+@if($ttStickyTools)
+</div>
+@endif
 
 {{-- the module's own transposed grid (768–1279, Batch C) — hidden until then --}}
 <div class="tt-window-grid" id="ttWindowGrid" hidden aria-label="Timetable for the visible days"></div>
