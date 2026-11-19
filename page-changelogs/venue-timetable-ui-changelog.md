@@ -1,3 +1,7 @@
+## 2026-11-19 — Select a Session fits on phones
+
+Subject and Session labels stack on narrow phones. The full session date and time can wrap, keeping the chevron and dropdown choices inside the dialog. Wider views keep their two-column form. Booking behavior is unchanged.
+
 ## 2026-11-19 — Summary Card numbers are clearer in both themes
 
 Status numbers use more readable foregrounds from the existing colour families. Card fills, borders, labels and counts are unchanged.

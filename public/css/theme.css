@@ -4378,6 +4378,30 @@ tr.bookable-flash.bookable-flash--warning > td { animation: bookable-pulse-warni
     color: var(--color-primary);
     font-weight: 600;
 }
+/* Venue Timetable: keep the occurrence date, time and arrow inside the picker. */
+#intentPickers .detail-value { min-width: 0; }
+#intentPickers .filter-select { width: 100%; }
+#intentPickers .session-dd-label,
+#intentPickers .session-dd-item {
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+#intentPickers .session-dd-trigger .dd-arrow { flex: 0 0 auto; }
+
+@media (max-width: 480px) {
+    #intentPickers .detail-row {
+        flex-direction: column;
+        gap: 4px;
+    }
+    #intentPickers .detail-label { width: auto; }
+}
+
+@media (any-pointer: coarse) {
+    #intentPickers :is(.filter-select, .session-dd-trigger, .session-dd-item) {
+        min-height: 48px;
+    }
+}
+
 .session-dd-empty {
     padding: 8px 14px;
     font-size: 13px;
