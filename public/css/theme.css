@@ -54,6 +54,12 @@
     --color-warning-container: rgba(212, 136, 15, 0.50);
     --color-on-warning-container: #FFB74D;
 
+    /* Foregrounds for numeric status values; never use these as fills. */
+    --color-status-normal-text: var(--color-on-success-container);
+    --color-status-replacement-text: var(--color-on-primary-container);
+    --color-status-conflict-text: var(--color-on-error-container);
+    --color-status-pending-text: var(--color-on-tertiary-container);
+
     --color-outline: rgba(155, 170, 190, 0.20);
     --color-outline-strong: rgba(155, 170, 190, 0.35);
 
@@ -120,6 +126,9 @@
     --color-on-warning: #FFFFFF;
     --color-warning-container: rgba(212, 136, 15, 0.25);
     --color-on-warning-container: #8A5800;
+
+    /* The smaller +N must remain readable on the green-tinted Total card. */
+    --color-status-pending-text: color-mix(in srgb, var(--color-on-warning-container) 80%, var(--color-on-tertiary));
 
     --color-outline: rgba(30, 50, 70, 0.12);
     --color-outline-strong: rgba(30, 50, 70, 0.25);
@@ -2413,6 +2422,20 @@ body.tt-sheet-open .tt-responsive:is([data-tt-page="cohort"], [data-tt-page="ven
 .summary-card.card-rejected .summary-value { color: var(--color-error); }
 .summary-card.card-conflict .summary-value { color: var(--color-error); }
 .summary-card.card-hours .summary-value    { color: var(--color-on-surface); }
+/* Live flip cards use readable foregrounds without changing their fills or the legacy cards. */
+.summary-section--flip .summary-card:is(.card-total, .card-approved) .summary-value {
+    color: var(--color-status-normal-text);
+}
+.summary-section--flip .summary-card:is(.card-replacement, .card-duration) .summary-value {
+    color: var(--color-status-replacement-text);
+}
+.summary-section--flip .summary-card:is(.card-conflict, .card-rejected) .summary-value {
+    color: var(--color-status-conflict-text);
+}
+.summary-section--flip .summary-card.card-pending .summary-value,
+.summary-section--flip .summary-value .sum-pending {
+    color: var(--color-status-pending-text);
+}
 .summary-card.card-hours .summary-card-front {
     border: 1px dashed var(--color-outline-strong);
     background: var(--color-surface-variant);

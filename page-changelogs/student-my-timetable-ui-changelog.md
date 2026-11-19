@@ -1,3 +1,7 @@
+## 2026-11-19 — Summary Card numbers are clearer in both themes
+
+Status numbers use more readable foregrounds from the existing colour families. Card fills, borders, labels and counts are unchanged.
+
 ## 2026-11-19 — Summary Cards name what they count
 
 The Summary Cards now say “Counts for the displayed week.” On touch they say to tap a card; mouse users see hover or click.

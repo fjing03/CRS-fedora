@@ -1,7 +1,19 @@
 # Contrast audit — both themes (2026-11-17)
 
-**Status: HELD.** Findings measured and recorded; nothing applied. The token fix waits until the
-Cohort/Venue responsive port (survey P1 #2) lands, because it touches `theme.css`.
+**Status: PARTIALLY APPLIED (2026-11-19).** The live Summary Card numeric slice (C1–C3, C6, and
+positive C8) is applied and browser-verified, including Cohort and Venue. The other text findings
+and all control-boundary findings remain open. The original measurements below are the baseline.
+
+The owner approved a darker light-theme amber made from two existing foreground tokens
+(`--color-on-warning-container` and `--color-on-tertiary`). Dark pending keeps its existing amber.
+No status families, fills, borders or counts changed. The selected dark modal tab was fixed separately.
+
+Verification: 28 Chromium contexts (seven pages × 1440 mouse/390 touch × light/dark).
+All 140 card values and 52 positive-suffix samples met the size-specific targets. Dark Venue blue
+1.79:1 → 5.64:1; light Pending 2.87:1 → 7.76:1; light `+N` on a tinted Total card 1.43:1 → 5.06:1.
+Lowest measured final suffix was 4.76:1 (dark). Request Approval was checked with its existing
+empty shell revealed in the browser; missing positive suffixes were sampled in the browser only.
+See `.sdd/changes/summary-numeric-contrast/spec-and-tasks.md`.
 
 **2026-11-17, later — the stated hold reason has expired.** That port landed (`e386106`, receipt
 33 passed), so nothing now blocks §3 except the one owner decision in it (light amber has no
@@ -14,8 +26,8 @@ text-safe value). Two amendments while re-reading:
 - **C8 is the critique's `+0`** (`docs/critique-ledger-2026-11-17.md` already pairs them) — one change
   retires both the noise and the 1.43:1 failure.
 
-The re-run this audit asked for — Cohort and Venue, which it excluded as "in flight" — is now
-unblocked, and remains outstanding.
+The port unblocked re-measuring Cohort and Venue. The 2026-11-19 numeric slice above now covers
+both pages' Summary Card values; the broader follow-up remains outstanding.
 
 **Method.** Rendered, not eyeballed. Playwright walked every text node on seven surfaces in both
 themes, resolved each element's effective background by compositing its ancestor stack, and computed
@@ -40,17 +52,15 @@ this audit on both once that lands.
 | C5 | same, **dark** | `.urgency-low` 13px/500 | green, e.g. *26 Working Days Left* | **2.98:1** | 4.5:1 |
 | C6 | summary cards, **light** | `.summary-value` 26px/700 | warning amber `#D4880F` on white | **2.87:1** | 3:1 |
 | C7 | summary cards, **light** | `.summary-label` 11px/600 | grey on a tinted card, e.g. *Total Classes* | **3.68:1** | 4.5:1 |
-| C8 | summary cards, **light** | `.sum-pending` | the `+0` suffix, amber on a green tint | **1.43:1** | 3:1 (large text) |
+| C8 | summary cards, **light** | `.sum-pending` | the `+0` suffix, amber on a green tint | **1.43:1** | 4.5:1 (small suffix) |
 | C9 | filter chips, **dark** | `.filter-chip` 12px, `.filter-chip-remove` 14px | primary-container text on its own fill | 4.04 / 4.22:1 | 4.5:1 |
 
 **Excluded, with the reason:**
 
 - **Login "Log in" at 1.38:1** — the button is `disabled` while the form is empty, at 0.75 opacity.
   WCAG 1.4.3 exempts inactive components. Not a defect.
-- **`+N` suffix at 4.04:1** — **reason corrected 2026-11-17.** It is not exempt as "noise": the span sits
-  inside `.summary-value`, which is **26px/700**, so it is large text and the threshold is **3:1**, which
-  4.04 clears. The old reason leaned on P3 deleting it, and P3 no longer deletes it (see the C8 note
-  below), so the exemption had to rest on the measurement instead. Excluded, correctly this time.
+- **`+N` at 4.04:1** — the old exclusion was incorrect. The suffix has its own font size and weight
+  (13.64–16.12px/600 on the tested live flip cards), so its target is 4.5:1. Count it under C8.
 
 ## 2. The pattern
 
@@ -65,7 +75,7 @@ of the same family:
 | Conflict | `#EF9A9A` (`--color-on-error-container`) | **6.93:1** | `#8B1A1A` | **9.29:1** |
 | Pending | `#DBA800` (`--color-on-tertiary-container`) | **6.83:1** | `#8A6D00` | **4.92:1** |
 
-## 3. The fix (held)
+## 3. The original plan (numeric slice applied; other consumers held)
 
 1. **Add four text-safe status tokens**, defined per theme, each aliasing an existing passing value
    above — e.g. `--color-status-normal-text`, `--color-status-replacement-text`,
@@ -79,15 +89,12 @@ of the same family:
 4. **C8's zero case disappears** with the `summary-zero-pending` lane (2026-11-17, another session) —
    but note what that lane does **not** do: it *preserves* positive suffixes, and `.sum-pending` is
    `--color-tertiary` (amber) in **both** themes. So a positive `+N` in the light theme still paints
-   amber on the card and still fails (1.43:1 measured; large text needs 3:1). C8 is therefore **halved,
-   not closed**, and the remaining half is a colour decision on a text-safe pending token — the same
-   decision §3 already owes for light-theme amber. Do not let the lane's green receipt bury this.
-   gone.
+   amber on the card and measured 1.43:1 on the light tinted Total card. The zero-suffix work did
+   not close positive C8; the approved pending foreground in the numeric slice does.
 
-**One gap that needs a decision, not a guess:** the **light** amber family has no text-safe value
-(the darkest amber, `#8A6D00`, is the tertiary container's text). Either pending text borrows that
-value in light, or the palette gains a genuine `--color-on-warning`-family text value. That is a
-colour decision and belongs to the owner.
+**Light amber decision resolved for card numbers and positive suffixes:** the existing warning
+foreground alone reached only 3.94:1 on the light tinted Total card. The approved darker blend
+reaches 5.06:1 there. This does not change warning or pending colours elsewhere.
 
 **Re-run this audit** on Cohort and Venue after the responsive port, and on all seven surfaces after
 the fix, to confirm the ratios above land in the built result — the numbers here are computed from
@@ -95,7 +102,7 @@ rendered pages, so they are checkable the same way.
 
 ## 4. What this does not cover
 
-- Cohort and Venue (in flight elsewhere).
+- Cohort and Venue outside the Summary Card numeric slice verified on 2026-11-19.
 - Any surface behind a role not in the demo data (no CSR account exists).
 - Non-text contrast: borders, focus rings and the thin ownership hairline were **not** measured here.
   The 0.5px hairline is deliberate and decorative-but-meaningful; it is out of scope for the 4.5:1
@@ -145,5 +152,4 @@ This is the one finding that needs a real colour decision, not an alias.
 (`.summary-info`, the guide "?", week arrows, the theme toggle) carry meaning through their glyph, so
 they are non-text contrast subjects in their own right and belong in the re-run.
 
-**Still to do:** re-measure Cohort and Venue after the responsive port; re-measure all surfaces after
-the token fix; add icon glyphs. Nothing applied.
+**Still to do for non-text contrast:** re-measure Cohort and Venue control boundaries; re-measure after any boundary-token fix; add icon glyphs. No non-text fix has been applied.

@@ -96,13 +96,6 @@
             color: var(--color-on-surface);
         }
 
-        /* ───── The five card value colours (M9, page-local, tokens only) ───── */
-        .summary-card.card-conflict .summary-value { color: var(--color-error); }
-        .summary-card.card-duration .summary-value { color: var(--color-primary); }
-        .summary-card.card-pending .summary-value { color: var(--color-warning); }
-        .summary-card.card-approved .summary-value { color: var(--color-success); }
-        .summary-card.card-rejected .summary-value { color: var(--color-error); }
-
         /* ───── Responsive card view ───── */
         .replacement-card {
             background: var(--color-surface);
