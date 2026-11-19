@@ -5,6 +5,10 @@
 **Scope:** Both live login pages (`/login/staff`, `/login/student`), which share
 `layouts/login-template.blade.php`. No DB, no migration, no new dependency, no JS file.
 
+## 2026-11-19 — tighten the gap before the form
+
+Reduced the quote’s bottom margin from 24px to 16px. The rendered gap from the attribution to the ID label is 20px instead of 28px on both login pages. Verified at 1440×900 and 769×840 in both themes; the phone layout stays unchanged when the quote is hidden.
+
 ## What changed
 
 A single athlete quote now sits between the "Staff/Student Login" title and the login

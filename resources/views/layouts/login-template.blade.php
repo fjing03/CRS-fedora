@@ -180,7 +180,7 @@
            UA figure/blockquote margins. Tokens only — no new colour. */
         .login-quote {
             display: none;
-            margin: 0 0 24px;
+            margin: 0 0 16px;
             text-align: center;
         }
 
