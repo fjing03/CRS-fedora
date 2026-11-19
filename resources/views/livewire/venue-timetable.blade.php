@@ -141,7 +141,39 @@
         .tt-venue-bar .semester-bar--venue {
             margin: 0;
         }
+        .venue-room-info { position: relative; }
+        .venue-room-info[open] { z-index: 21; }
+        #venueDescription {
+            display: grid;
+            place-items: center;
+            list-style: none;
+            cursor: pointer;
+        }
+        #venueDescription::-webkit-details-marker { display: none; }
+        #venueDescription .badge { pointer-events: none; }
+        .venue-room-info-note {
+            position: absolute;
+            inset-block-start: calc(100% + 4px);
+            inset-inline-end: 0;
+            width: min(260px, calc(100vw - 32px));
+            margin: 0;
+            padding: 10px 12px;
+            border: 1px solid var(--color-outline);
+            border-radius: var(--radius-md);
+            background: var(--color-surface);
+            color: var(--color-on-surface);
+            box-shadow: var(--shadow-sm);
+            font-size: 13px;
+            line-height: 1.4;
+            overflow-wrap: anywhere;
+        }
+        @media (any-pointer: coarse) {
+            #venueDescription { min-width: 48px; min-height: 48px; }
+        }
         @media (min-width: 1280px) {
+            .venue-room-info-note {
+                inset-inline: 0 auto;
+            }
             .tt-responsive[data-tt-page="venue"] .tt-venue-bar {
                 display: grid;
                 grid-template-columns: minmax(0, 1fr) auto auto auto minmax(0, 1fr);
@@ -163,6 +195,18 @@
             }
             .tt-responsive[data-tt-page="venue"] .tt-venue-bar .print-btn {
                 justify-self: end;
+            }
+        }
+        /* The wide touch target must not overlap the previous-week arrow. */
+        @media (min-width: 1280px) and (any-pointer: coarse) {
+            .tt-responsive[data-tt-page="venue"] .venue-room-row .venue-dd {
+                min-width: 0;
+            }
+            .tt-responsive[data-tt-page="venue"] .venue-room-row .venue-dd-label {
+                min-width: 0;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
             }
         }
         /* Below 1280 the room row is a plain block (the prototype's
@@ -686,16 +730,18 @@
         <div class="semester-bar semester-bar--venue venue-room-row">
             <div class="venue-dropdown-wrap">
                 @include('partials.ui-venue-dropdown', ['selectId' => 'venueSelect'])
-                {{-- venue-side-chips: the capacity badge (icon + number + tip) AND,
-                     2026-11-10 (user), the room DESCRIPTION — which used to be a plain
-                     grey line under the dropdown and is now the same info-icon chip the
-                     arrangement page wears (`#arrVenueDescription`): `.badge badge-past`
-                     + info glyph, the description in the hover tip. Same group, same
-                     4px gap, same 12px glyph on both pages. Each chip stays hidden until
-                     the payload fills it — no empty stubs. --}}
                 <div class="venue-side-chips">
                     <span class="badge badge-capacity" id="venueCapacity" style="display:none;"></span>
-                    <span class="badge badge-past" id="venueDescription" style="display:none;"></span>
+                    @if(!empty($venue['description']))
+                        <details class="venue-room-info">
+                            <summary id="venueDescription" aria-label="Room information">
+                                <span class="badge badge-past">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+                                </span>
+                            </summary>
+                            <p class="venue-room-info-note">{{ $venue['description'] }}</p>
+                        </details>
+                    @endif
                 </div>
             </div>
         </div>
@@ -1240,21 +1286,6 @@
                 capacityEl.insertAdjacentText('beforeend', String(venueInfo.capacity));
                 capacityEl.setAttribute('data-tip', 'Capacity \u2014 ' + venueInfo.capacity + ' seats');
                 capacityEl.style.display = '';
-            }
-
-            /* 2026-11-10 (user): the room description is a CHIP, not a line —
-               byte-identical to the arrangement page's `#arrVenueDescription`
-               fill: the same info glyph, the description in the hover tip and
-               `Room description: …` in the aria label. Served from the DB via
-               the venue payload (canonical always). */
-            const venueDescEl = document.getElementById('venueDescription');
-            if (venueDescEl && venueInfo.description) {
-                venueDescEl.textContent = '';
-                venueDescEl.insertAdjacentHTML('beforeend',
-                    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>');
-                venueDescEl.setAttribute('data-tip', venueInfo.description);
-                venueDescEl.setAttribute('aria-label', 'Room description: ' + venueInfo.description);
-                venueDescEl.style.display = '';
             }
 
             function openModal(event) {

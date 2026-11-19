@@ -1,3 +1,7 @@
+## 2026-11-19 — room information opens on tap or click
+
+The info icon beside capacity opens the selected room’s note. Tap or click again to close it. The icon has a 48px minimum target on touch, and rooms without a note don’t show an info icon.
+
 ## 2026-11-19 — Earliest bookable keeps the room in view
 
 Phone and tablet keep the room code and Week summary next to the sticky date controls. Earliest bookable still jumps to the same slot, scrolling only if necessary to bring it below those controls. The desktop grid and booking rules are unchanged.
