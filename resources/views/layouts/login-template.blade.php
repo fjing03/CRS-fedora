@@ -399,15 +399,16 @@
         .light .ui-footer--fixed .ui-footer-link:hover { text-decoration: underline; }
 
         .error-msg {
-            background: color-mix(in srgb, var(--color-error) 15%, transparent);
+            background: color-mix(in srgb, var(--color-surface) 85%, var(--color-error));
             border: 1px solid var(--color-error);
             border-radius: var(--radius-md);
             padding: 12px 16px;
             margin-bottom: 20px;
             font-size: 14px;
-            color: var(--color-error);
+            color: var(--color-on-error-container);
             animation: fadeSlideUp 0.4s ease both;
         }
+        .error-msg p + p { margin-top: 4px; }
 
         .format-hint {
             font-size: 12px;
@@ -518,9 +519,15 @@
             <input type="hidden" name="login_type" value="{{ $loginType }}">
 
             @if ($errors->any())
-                <div class="error-msg">
+                <div class="error-msg" role="alert">
                     @foreach ($errors->all() as $error)
-                        {{ $error }}
+                        <p>{{ $error }}</p>
+                        @if ($error === __('auth.failed'))
+                            <p>Check your {{ $idLabel }} format and re-enter your password.</p>
+                            @if ($loginType === 'staff')
+                                <p>Forgot your password? Reset it through the TARUMT intranet.</p>
+                            @endif
+                        @endif
                     @endforeach
                 </div>
             @endif
