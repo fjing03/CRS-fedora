@@ -171,6 +171,77 @@
             animation: fadeSlideUp 0.6s ease 0.2s both;
         }
 
+        /* ── Daily motivational quote (SDD `login-daily-quote`, 2026-11-19) ──
+           One athlete quote per weekday, under the title and above the form.
+           It is DECORATION, so it never wins space against the Log in button:
+           hidden under 769px wide and under 700px tall, where the card already
+           fills the window. `display` is toggled in CSS before first paint —
+           nothing measures, observes or animates it, so there is no jump.
+           The reveal MUST stay after the base rule (equal specificity, last
+           wins). Spacing is explicit because theme.css's `*` reset zeroes the
+           UA figure/blockquote margins. Tokens only — no new colour. */
+        .login-quote {
+            display: none;
+            margin: 0 0 24px;
+            text-align: center;
+        }
+
+        .login-quote blockquote {
+            margin: 0 auto;
+            max-width: 36ch;
+            font-size: 12.5px;
+            line-height: 1.55;
+            /* Light mode measured 3.17:1 with --color-on-surface-variant at this
+               size (the card is translucent over a bright photo), below the 4.5:1
+               floor. `--color-on-surface` is the pre-agreed fallback in the lane
+               spec: same size, same quiet tone, readable in both themes. */
+            color: var(--color-on-surface);
+            text-wrap: balance;
+        }
+
+        .login-quote figcaption {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 10px;
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0.3px;
+            /* Hierarchy comes from size + weight here, not from a lighter
+               colour: 11px text needs the same 4.5:1 as the quote. */
+            color: var(--color-on-surface);
+            opacity: 0.9;
+        }
+
+        /* The ring lives on the wrapper so the 60% ink fade cannot fade it, and
+           so the dark theme's `invert` cannot recolour it. box-shadow keeps the
+           ring out of layout — the avatar stays a 32px square. */
+        .login-quote-avatar {
+            display: inline-flex;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            overflow: hidden;
+            box-shadow: 0 0 0 1px var(--color-outline);
+            flex-shrink: 0;
+        }
+
+        .login-quote-avatar img {
+            display: block;
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            opacity: 0.6;
+            /* dark is the default theme in this document, so the ink is
+               inverted by default and only light mode shows it as drawn */
+            filter: invert(1);
+        }
+        .light .login-quote-avatar img { filter: none; }
+
+        @media (min-width: 769px) and (min-height: 700px) {
+            .login-quote { display: block; }
+        }
+
         .input-group {
             margin-bottom: 20px;
             position: relative;
@@ -416,6 +487,8 @@
         </div>
 
         <div class="page-title">{{ $title }} Login</div>
+
+        @include('partials.login-quote', ['quote' => \App\Support\LoginQuote::today()])
 
         <form method="POST" action="/login">
             @csrf
