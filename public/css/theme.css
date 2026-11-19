@@ -2453,6 +2453,9 @@ body.tt-sheet-open .tt-responsive:is([data-tt-page="cohort"], [data-tt-page="ven
         0 4px 12px rgba(0, 0, 0, 0.06),
         inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
+html.light .summary-section--flip .card-total .summary-card-front .summary-label {
+    color: var(--color-on-surface);
+}
 
 /* ── Modal shell ───────────────────────────────────────────── */
 .modal-overlay {
