@@ -482,6 +482,13 @@
                 padding: 0;
             }
             .login-btn { min-height: 48px; }
+            .role-switch a {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                min-width: 48px;
+                min-height: 48px;
+            }
         }
     </style>
     @yield('page-styles')
