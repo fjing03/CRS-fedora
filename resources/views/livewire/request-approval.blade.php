@@ -987,7 +987,13 @@
                 var range = parts.length > 1
                     ? shortRange(DateHelper.to12h(parts[0]), DateHelper.to12h(parts[1]))
                     : (r.replacementTime || '');
-                var days = workingDaysDiff(iso);
+                // The desktop requested slot also counts down only while Pending.
+                var countdown = '';
+                if (r.status === 'Pending') {
+                    var days = workingDaysDiff(iso);
+                    countdown = '<span class="cl-rc-urg ' + urgencyBandClass(days) + '">' +
+                        daysLeftLabel(days) + '</span>';
+                }
                 var statusTip = r.requestStatusTip
                     ? ' data-tip="' + String(r.requestStatusTip).replace(/"/g, '&quot;') + '"'
                     : '';
@@ -1011,8 +1017,7 @@
                       '<span class="cl-rc-date">' +
                         DateHelper.dayAbbr(DateHelper.weekdayName(iso)) + ', ' +
                         formatDate(iso) + '</span>' +
-                      '<span class="cl-rc-urg ' + urgencyBandClass(days) + '">' +
-                        daysLeftLabel(days) + '</span>' +
+                      countdown +
                       '<span class="cl-rc-time">' + range + '</span>' +
                       '<span class="cl-rc-venue">' + (r.replacementVenue || '') + slot + '</span>' +
                     '</div>' +

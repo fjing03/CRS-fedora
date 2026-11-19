@@ -371,11 +371,12 @@
               Urgency is the shared working-day law (the WorkingHours calendar,
               holidays included — `workingDaysDiff`), never calendar days.
 
-              Which column carries the countdown (user, grill Q3=A — the staff
-              page's rule): the ORIGINAL slot always does, because the class is
-              the thing that still needs a new slot; the REQUESTED slot only while
-              the request is PENDING, because once it is decided a past slot would
-              read "Overdue" for a replacement that has already taken place. */
+              The ORIGINAL slot stops counting once the replacement is approved or
+              completed (task 10, D1). The REQUESTED slot counts only while Pending. */
+        function showOriginalCountdown(status) {
+            return status !== 'approved' && status !== 'completed';
+        }
+
         function slotBlock(slot, withCountdown) {
             if (!slot) return '<span class="cell-dash">\u2014</span>';
             const weekTag = slot.week ? ' (Week ' + slot.week + ')' : '';
@@ -662,7 +663,7 @@
                     + (r.requestId ? ' data-request-id="' + r.requestId + '"' : '') + '>' +
                     '<td class="col-code">' + courseCell(r) + '</td>' +
                     '<td class="col-lecturer">' + r.lecturer + '</td>' +
-                    '<td>' + slotBlock(r.orig, true) + '</td>' +
+                    '<td>' + slotBlock(r.orig, showOriginalCountdown(r.status)) + '</td>' +
                     '<td class="col-reason">' + reasonCell(r) + '</td>' +
                     '<td>' + slotBlock(r.req, pending) + '</td>' +
                     '<td class="col-status">' + statusCell(r) + '</td>' +
@@ -682,7 +683,7 @@
                         statusCell(r) +
                     '</div>' +
                     '<div class="upcoming-card-slots">' +
-                        '<div class="slot-block"><span class="slot-label">Original Slot</span>' + slotBlock(r.orig, true) + '</div>' +
+                        '<div class="slot-block"><span class="slot-label">Original Slot</span>' + slotBlock(r.orig, showOriginalCountdown(r.status)) + '</div>' +
                         '<div class="slot-block"><span class="slot-label">Requested Slot</span>' + slotBlock(r.req, pending) + '</div>' +
                     '</div>' +
                     '<div class="upcoming-card-reason"><span class="slot-label">Conflict Reason</span>' + reasonCell(r) + '</div>' +
@@ -769,7 +770,7 @@
                    (`countdownHidden`). The date still prints; only the red countdown
                    goes quiet. */
                 html: slotTab('Original Slot Schedule', r.orig, 'Class ID', sessionId,
-                    r.status !== 'approved' && r.status !== 'completed'),
+                    showOriginalCountdown(r.status)),
             });
             /* the Course tab is GONE (2026-11-11): the code/name/type live in the
                subtitle, the lecturer here with the two facts the staff strip prints */

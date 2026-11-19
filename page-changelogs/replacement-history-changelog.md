@@ -1,3 +1,7 @@
+## 2026-11-19 — countdowns match the request state
+
+Approved and Completed classes keep their original schedule but no longer show an original-slot countdown in the table or phone cards, matching the Original tab. Classes that still need arrangement keep their countdown.
+
 ## 2026-11-19 — Summary Card numbers are clearer in both themes
 
 Status numbers use more readable foregrounds from the existing colour families. Card fills, borders, labels and counts are unchanged.

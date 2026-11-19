@@ -1,3 +1,7 @@
+## 2026-11-19 — countdowns match the request state
+
+Phone cards now show the requested-slot countdown only for Pending requests, matching the desktop table. Decided cards keep their date, time, venue, slot-validity marker and request age.
+
 ## 2026-11-19 — Summary Card numbers are clearer in both themes
 
 Status numbers use more readable foregrounds from the existing colour families. Card fills, borders, labels and counts are unchanged.
