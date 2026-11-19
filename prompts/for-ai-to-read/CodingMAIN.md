@@ -427,21 +427,37 @@ Source: `FR&NFR copy.md` (this folder — a verbatim copy of `../../../final/FR&
 - Code format: `{ProgCode}{Year}(S{Sem})G{Group}`; intake = June of enrolment year; academic year 2025/26
 - Master dataset in `dataset/cohorts.md`
 
-### Student counts per cohort (FIXED — user decision 2026-08-01, reproducible capacity-filter demos)
+### Student counts per cohort (LIVE DEMO DB — user decision 2026-11-19)
+
+These are the values stored in `cohorts.student_count` on the running demo database, which is what the
+interface shows (Class Details prints one figure per cohort and their sum). **This table follows the
+database, not the seeder.**
 
 | Cohort | Students | Cohort | Students |
 |--------|----------|--------|----------|
-| DFT1(S1) | 30 | RSD3(S1)G1 | 14 |
-| DFT2(S1) | 28 | RSD3(S1)G2 | 14 |
-| DSF1(S1) | 24 | RSD3(S1)G3 | 13 |
-| DSF2(S1) | 22 | RAF2(S3)G2 | 12 |
-| RSD1(S1)G1 | 18 | RAF2(S3)G4 | 10 |
-| RSD2(S1)G1 | 16 | RBU1(S1)G1 | 20 |
-| RSD2(S1)G2 | 16 | | |
-| RSD2(S1)G3 | 15 | | |
+| DFT1(S1) | 23 | RSD3(S1)G1 | 10 |
+| DFT2(S1) | 18 | RSD3(S1)G2 | 5 |
+| DSF1(S1) | 25 | RSD3(S1)G3 | 9 |
+| DSF2(S1) | 15 | RAF2(S3)G2 | 5 |
+| RSD1(S1)G1 | 8 | RAF2(S3)G4 | 6 |
+| RSD2(S1)G1 | 7 | RBU1(S1)G1 | 10 |
+| RSD2(S1)G2 | 5 | | |
+| RSD2(S1)G3 | 9 | | |
 
-**Capacity implications (by design):** MPU-3133 combined = 83 students → only B110/B111 (cap > 35) fit. MPU-3232 combined = 44 → also B110/B111. Tutorial rooms (≤35) remain valid for single-cohort and small modules. *(Adjustable — update seeder + this table together.)*
-*Seeder key format note: seeder keys always include the group suffix (`DFT1(S1)G1`); display names in `dataset/cohorts.md` omit `G1` for DFT/DSF.*
+**Total: 155 students** across 14 cohorts (range 5–25), plus 14 teaching staff = **169 users**.
+
+**Capacity implications (measured on this data):** the MPU-3133 group (RBU1 10 + RAF2(S3)G4 6 +
+RAF2(S3)G2 5 + RSD2(S1)G2 5 + RSD2(S1)G3 9) totals **35**, which is exactly a tutorial room's capacity, so
+it passes the capacity check on the boundary (`capacity >= headcount`) and 35-seat tutorial rooms are the
+smallest rooms that may host it. The MPU-3232 group (RSD2(S1)G2 5 + RSD2(S1)G3 9 + RSD3(S1)G3 9) totals
+**23**, so tutorials fit it comfortably.
+
+**Known mismatch — do not "fix" this table back without a ruling.** `DatabaseSeeder::STUDENT_COUNTS` still
+carries a different set of numbers (MPU-3133 group 44, 175 in total; amended 2026-10-27). The demo database
+was written before that amendment and **is never re-seeded**, so it keeps the older figures. Changing the
+seeder without refreshing the demo data (a gated operation) would make the code and the running system
+disagree again. Any refresh of demo data must re-measure both this table and the capacity figures above.
+*Cohort-key format note: keys always include the group suffix (`DFT1(S1)G1`); display names in `dataset/cohorts.md` omit `G1` for DFT/DSF.*
 
 ### Academic staff (14 — imported)
 - **DCIT (11):** 9 Lecturers + 2 PLs (Surayaini 5425, Mohd Nur Rahmat 5516)
