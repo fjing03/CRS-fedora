@@ -822,9 +822,8 @@
         }
 
         // ── Render table body ──
-        function renderBody() {
+        function renderBody(sorted) {
             const tbody = document.getElementById('tableBody');
-            const sorted = sortData(currentFiltered);
             const offset = (currentPage - 1) * rpp;
             const page = sorted.slice(offset, offset + rpp);
 
@@ -899,7 +898,7 @@
 
         function goToPage(page) {
             currentPage = page;
-            renderBody();
+            renderBody(sortData(currentFiltered));
             updatePagination();
         }
 
@@ -948,14 +947,15 @@
         // ── Main render ──
         function renderTable() {
             currentFiltered = filterData();
+            const sorted = sortData(currentFiltered);
             renderHeader();
             /* survey finding B3: reassigned ONCE, before the first render */
             wrapRequestCard();
-            renderBody();
+            renderBody(sorted);
             updateSummary();
             updatePagination();
             updateResultCount({ elId: 'resultCount', data: currentFiltered, total: MockData.approvalRequests.length, label: 'results' });
-            renderCards();
+            renderCards(sorted);
             renderFilterChips();
         }
 
@@ -1031,11 +1031,11 @@
         }
 
         // ── Render cards (mobile responsive view) ──
-        function renderCards() {
+        function renderCards(sorted) {
             const container = document.getElementById('requestsCards');
             if (!container) return;
             container.innerHTML = '';
-            currentFiltered.forEach(function(r, i) {
+            sorted.forEach(function(r) {
                 const card = document.createElement('div');
                 card.className = 'request-card';
                 card.setAttribute('data-id', r.id);

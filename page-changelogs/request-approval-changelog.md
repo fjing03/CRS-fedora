@@ -1,3 +1,7 @@
+## 2026-11-19 — phone cards follow the table's sort
+
+For the same filters and sort, phone cards and desktop rows now show the same request order. Oldest submission first remains the default; saved sorts still apply. Desktop pagination and approval actions are unchanged.
+
 ## 2026-11-19 — countdowns match the request state
 
 Phone cards now show the requested-slot countdown only for Pending requests, matching the desktop table. Decided cards keep their date, time, venue, slot-validity marker and request age.
