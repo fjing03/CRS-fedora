@@ -411,6 +411,13 @@
             padding-left: 2px;
             opacity: 0.6;
         }
+        .format-hint.is-invalid {
+            padding: 4px 8px;
+            border-radius: var(--radius-sm);
+            background: var(--color-surface);
+            color: var(--color-on-error-container);
+            opacity: 1;
+        }
 
         /* ── Phone / narrow: keep the photo as a frame, not as a filter over the
               form. At 65% the sky and grass read straight through the card and the
@@ -517,9 +524,9 @@
                             <circle cx="12" cy="7" r="4"/>
                         </svg>
                     </span>
-                    <input type="text" id="login_id" name="login_id" placeholder="{{ $idPlaceholder }}" value="{{ old('login_id') }}" autocomplete="username" spellcheck="false" required oninput="validateLogin()">
+                    <input type="text" id="login_id" name="login_id" placeholder="{{ $idPlaceholder }}" value="{{ old('login_id') }}" autocomplete="username" spellcheck="false" aria-describedby="loginIdHint" required oninput="validateLogin()">
                 </div>
-                <div class="format-hint">{{ $formatHint }}</div>
+                <div class="format-hint" id="loginIdHint" aria-live="polite" data-format-error="{{ $formatError }}">{{ $formatHint }}</div>
             </div>
 
             <div class="input-group">
@@ -558,9 +565,12 @@
 
     <script>
         const idRegex = new RegExp(@json($idRegex));
+        const idInput = document.getElementById('login_id');
+        const idHint = document.getElementById('loginIdHint');
+        const defaultIdHint = idHint.textContent;
 
-        function validateLogin() {
-            const loginId = document.getElementById('login_id').value.trim();
+        function validateLogin(revealIdError = false) {
+            const loginId = idInput.value.trim();
             const password = document.getElementById('password').value;
             const btn = document.getElementById('loginBtn');
 
@@ -568,11 +578,26 @@
             const pwValid = password.length > 0;
 
             btn.disabled = !(idValid && pwValid);
+
+            const showIdError = loginId !== '' && !idValid
+                && (revealIdError || idInput.hasAttribute('aria-invalid'));
+            const message = showIdError ? idHint.dataset.formatError : defaultIdHint;
+            if (idHint.textContent !== message) {
+                idHint.textContent = message;
+            }
+            idHint.classList.toggle('is-invalid', showIdError);
+            if (showIdError) {
+                idInput.setAttribute('aria-invalid', 'true');
+            } else {
+                idInput.removeAttribute('aria-invalid');
+            }
         }
+
+        idInput.addEventListener('blur', () => validateLogin(true));
 
         document.addEventListener('DOMContentLoaded', function() {
             updateIcon(document.documentElement.classList.contains('dark'));
-            document.getElementById('login_id').focus();
+            idInput.focus();
             validateLogin();
         });
 

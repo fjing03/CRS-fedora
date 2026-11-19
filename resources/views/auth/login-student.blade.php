@@ -10,6 +10,7 @@
     'idPlaceholder' => 'e.g. 25RSD0001',
     'idRegex' => '^\d{2}[A-Za-z]{3}\d{4}$',
     'formatHint' => 'Format: 2 digits + 3 letters + 4 digits',
+    'formatError' => 'Enter 2 digits, 3 letters, then 4 digits (for example, 25RSD0001).',
     'loginType' => 'student',
     'roleSwitchHtml' => 'Staff? <a href="' . route('login.staff') . '">Staff Login</a>',
 ])

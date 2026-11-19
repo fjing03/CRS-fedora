@@ -10,6 +10,7 @@
     'idPlaceholder' => 'e.g. P5425 or 5425',
     'idRegex' => '^P?\d{4}$',
     'formatHint' => '4 digits, optional "P" prefix',
+    'formatError' => 'Enter 4 digits, with or without an uppercase P.',
     'loginType' => 'staff',
     'roleSwitchHtml' => 'Student? <a href="' . route('login.student') . '">Student Login</a>',
 ])
