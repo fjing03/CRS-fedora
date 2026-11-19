@@ -1,3 +1,7 @@
+## 2026-11-19 — Summary Cards name what they count
+
+The Summary Cards now say “Counts for the displayed week.” On touch they say to tap a card; mouse users see hover or click.
+
 ## 2026-11-19 — Week summary works on touch
 
 Removed the unused header Summary icon. **Week summary** is the only opener; tapping a card turns it over, and its info button opens the explanation above the sheet. Closing the explanation leaves the sheet open. Desktop cards, counts and print stay unchanged. Verified at 390px with Chromium touch emulation in both themes.

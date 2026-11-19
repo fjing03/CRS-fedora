@@ -19,16 +19,21 @@
 @endphp
 
 <div class="summary-section{{ $flipCards ? ' summary-section--flip' : '' }}" id="summarySection">
-    <div class="summary-hint">
+    <div class="summary-hint{{ isset($summaryScope) ? ' summary-hint--scoped' : '' }}">
         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-        {{-- summary-cards-button (2026-11-14): the sheet is a phone surface, so
-             the plain (non-flip) variant gets a sentence that speaks to touch.
-             The six flip pages already say "Hover or tap" — true on a touch
-             screen — so they keep exactly one sentence. --}}
-        <span class="summary-hint-pointer">Stats reflect the <strong>selected period</strong> and any active filters. @if($flipCards)Hover or tap a card to learn more.@else Hover a card to learn more.@endif</span>
-        @unless($flipCards)
-            <span class="summary-hint-touch">Stats reflect the <strong>selected period</strong> and any active filters. Tap a card to see what it counts.</span>
-        @endunless
+        @isset($summaryScope)
+            <span>
+                {{ $summaryScope === 'week' ? 'Counts for the displayed week.' : 'Counts match the filtered list.' }}
+                <span class="summary-hint-pointer">Hover or click a card to see what it counts.</span>
+                <span class="summary-hint-touch">Tap a card to see what it counts.</span>
+            </span>
+        @else
+            {{-- Preserve the existing hint for legacy callers that don't opt into a scope. --}}
+            <span class="summary-hint-pointer">Stats reflect the <strong>selected period</strong> and any active filters. @if($flipCards)Hover or tap a card to learn more.@else Hover a card to learn more.@endif</span>
+            @unless($flipCards)
+                <span class="summary-hint-touch">Stats reflect the <strong>selected period</strong> and any active filters. Tap a card to see what it counts.</span>
+            @endunless
+        @endisset
     </div>
     <div class="summary-bar" id="summaryBar">
         @foreach ($cards as $i => $card)

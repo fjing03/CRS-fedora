@@ -362,6 +362,7 @@
 
 @include('partials.ui-summary-bar', [
     'flipCards' => true,
+    'summaryScope' => 'filtered',
     'cards' => [
         ['class' => 'card-total', 'valueId' => 'summaryTotal', 'label' => 'Total Requests',
             'bullets' => ['Matches filters', 'All statuses', 'One list'],

@@ -312,6 +312,7 @@
         <!-- ─── Five summary cards (M9) — the values follow the filters ─── -->
         @include('partials.ui-summary-bar', [
             'flipCards' => true,
+            'summaryScope' => 'filtered',
             'cards' => [
                 ['class' => 'card-conflict', 'valueId' => 'summaryNeeds', 'label' => 'Classes to Arrange',
                     'bullets' => ['Still needs action', 'No request yet', '<strong class="summary-excluded">Needs make-up</strong>'],

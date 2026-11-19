@@ -738,6 +738,7 @@
          deviation, venue-event-blocks-db design §3); keyword spans per upstream -->
     @include('partials.ui-summary-bar', [
         'flipCards' => true,
+        'summaryScope' => 'week',
         'cards' => [
             ['class' => 'card-total', 'valueId' => 'sumTotal', 'label' => 'Total Slots',
                 'bullets' => ['Every slot shown', '<strong>30 min</strong> each', '<strong class="summary-pending">+N</strong> = pending'],
@@ -750,14 +751,12 @@
                         ['Pending', '<span>Added in the small <strong>+N</strong> only.</span>'],
                     ],
                 ]],
-            ['class' => 'card-available', 'valueId' => 'sumAvailable', 'label' => 'Available',
-                'bullets' => ['Free to book', 'No Sunday/holiday', 'Click a green slot'],
-                'explanation' => 'Free slots you can book this week. <span class="warn-keyword">Sundays and public holidays</span> are not counted.',
+            ['class' => 'card-available', 'valueId' => 'sumAvailable', 'label' => 'Bookable Slots',
+                'bullets' => ['Free to book', 'Not too soon', 'No Sundays or holidays'],
                 'detail' => [
                     'items' => [
-                        ['Free to book', '<span>No class, request or holiday in the slot.</span>'],
-                        ['Click a green slot', '<span>Green means it can be booked.</span>'],
-                        ['No Sundays or holidays', '<span>Closed days never count as available.</span>'],
+                        ['Free slots you can book', 'Only slots you can book in this venue for the displayed week count.'],
+                        ['Not every free slot counts', 'Free slots that are too soon to book, on Sundays or on public holidays are excluded.'],
                     ],
                 ]],
             ['class' => 'card-replacement', 'valueId' => 'sumMyClasses', 'label' => 'My Teaching Classes',

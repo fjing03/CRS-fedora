@@ -252,6 +252,7 @@
              untouched, so the page's own paint code keeps working as it did. -->
         @include('partials.ui-summary-bar', [
             'flipCards' => true,
+            'summaryScope' => 'filtered',
             'cards' => [
                 /* 2026-11-09 (user): the hours card sits SECOND, right of Awaiting
                    Arrangement — the two numbers a student reads first are "how many

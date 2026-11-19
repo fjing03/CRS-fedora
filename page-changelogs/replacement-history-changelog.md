@@ -1,3 +1,7 @@
+## 2026-11-19 — Summary Cards name what they count
+
+The Summary Cards now say “Counts match the filtered list.” On touch they say to tap a card; mouse users see hover or click.
+
 ## 2026-11-18 — updated How to use this page guide
 
 **Getting started** explains the two week filters, status meanings and how to open replacement details. **Full reference** covers withdrawn or rejected proposals, combined filters and the handoff to My Timetable. The page remains read-only.

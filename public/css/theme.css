@@ -2280,17 +2280,23 @@ body.tt-sheet-open .tt-responsive:is([data-tt-page="cohort"], [data-tt-page="ven
     z-index: 1400;
 }
 
-/* The plain variant gets a sentence that speaks to touch, inside the sheet only.
-   The six flip pages say "Hover or tap", which is true on a touch screen, so their
-   hint is untouched. */
 .summary-hint-touch {
     display: none;
 }
-#summarySheetBody .summary-section:not(.summary-section--flip) .summary-hint-pointer {
+/* Preserve the legacy plain-card sheet hint. Live scoped hints follow input capability. */
+#summarySheetBody .summary-section:not(.summary-section--flip) .summary-hint:not(.summary-hint--scoped) .summary-hint-pointer {
     display: none;
 }
-#summarySheetBody .summary-hint-touch {
+#summarySheetBody .summary-hint:not(.summary-hint--scoped) .summary-hint-touch {
     display: inline;
+}
+@media (hover: none) {
+    .summary-hint--scoped .summary-hint-pointer {
+        display: none;
+    }
+    .summary-hint--scoped .summary-hint-touch {
+        display: inline;
+    }
 }
 
 /* Plain variant inside the sheet: two columns (one below 390) like the flip pages,

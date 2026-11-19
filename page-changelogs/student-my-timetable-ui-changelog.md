@@ -1,3 +1,7 @@
+## 2026-11-19 — Summary Cards name what they count
+
+The Summary Cards now say “Counts for the displayed week.” On touch they say to tap a card; mouse users see hover or click.
+
 ## 2026-11-18 — updated How to use this page guide
 
 **Getting started** explains which class time and venue to attend and how pending proposals differ from approved replacements. **Full reference** covers the weekly counts, Class Replacements and printing; **Shortcuts** lists the existing week keys. Student access stays read-only.

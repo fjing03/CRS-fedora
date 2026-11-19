@@ -102,6 +102,7 @@
     <!-- ─── Weekly Summary Bar ─── -->
     @include('partials.ui-summary-bar', [
         'flipCards' => true,
+        'summaryScope' => 'week',
         'cards' => [
             ['class' => 'card-total', 'valueId' => 'sumTotal', 'label' => 'Total Classes',
                 'bullets' => ['<strong class="summary-normal">Normal</strong> + <strong class="summary-replacement">blue</strong>', '<strong class="summary-pending">+N</strong> = pending', 'No <strong class="summary-excluded">red</strong> blocks'],

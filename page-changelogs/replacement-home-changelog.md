@@ -1,3 +1,7 @@
+## 2026-11-19 — Summary Cards name what they count
+
+The Summary Cards now say “Counts match the filtered list.” On touch they say to tap a card; mouse users see hover or click.
+
 ## 2026-11-18 — the open filters card stops covering the column it filters
 
 On desktop (≥769) the card now starts just past the table's first labelled column

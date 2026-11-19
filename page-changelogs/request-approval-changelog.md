@@ -1,3 +1,7 @@
+## 2026-11-19 — Summary Cards name what they count
+
+The Summary Cards now say “Counts match the filtered list.” On touch they say to tap a card; mouse users see hover or click.
+
 ## 2026-11-18 — guide Shortcuts tab
 
 On desktop, **Shortcuts** lists how to highlight and open requests. **A** and **R** open decision dialogs for Pending rows; neither submits a decision.

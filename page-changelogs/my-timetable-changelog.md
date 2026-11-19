@@ -1,3 +1,7 @@
+## 2026-11-19 — Summary Cards name what they count
+
+The Summary Cards now say “Counts for the displayed week.” On touch they say to tap a card; mouse users see hover or click.
+
 ## 2026-11-18 — updated How to use this page guide
 
 The guide now follows the staff flow from finding a class to opening **Class Details** and starting an eligible replacement. **Full reference** explains statuses, cancellation, the week summary and printing. **Shortcuts** lists the existing week keys on wider screens.
