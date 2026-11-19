@@ -19,29 +19,22 @@ class DatabaseSeeder extends Seeder
 
     private const DEFAULT_PASSWORD = 'Tarumt@2026';
 
-    /* 2026-10-13 — user-approved cohort sizes, matching the live demo DB
-       exactly (docs/demo-db-data-changes.md). Reseeding now reproduces the
-       presentation dataset: 0 over-capacity sessions. */
-    /* BMSE3153-class-info rail-2 (user 2026-10-27, amended): the Bachelor
-       cohorts at 7–10; the Diploma cohorts at 20–25 (the user's split rail).
-       The demo live DB matches (docs/demo-db-data-changes.md). */
+    // Approved live-demo headcounts (CodingMAIN.md §8, 2026-11-19): 155 students.
     private const STUDENT_COUNTS = [
-        // the Diploma (D*) cohorts ride 20–25 (user 2026-10-27 amendment —
-        // the 7–10 rail applies to the Bachelor cohorts only):
-        'DFT1(S1)G1' => 24,
-        'DFT2(S1)G1' => 20,
+        'DFT1(S1)G1' => 23,
+        'DFT2(S1)G1' => 18,
         'DSF1(S1)G1' => 25,
-        'DSF2(S1)G1' => 21,
-        'RSD1(S1)G1' => 9,
-        'RSD2(S1)G1' => 8,
-        'RSD2(S1)G2' => 7,
-        'RSD2(S1)G3' => 10,
-        'RSD3(S1)G1' => 9,
-        'RSD3(S1)G2' => 8,
-        'RSD3(S1)G3' => 7,
-        'RAF2(S3)G2' => 10,
-        'RAF2(S3)G4' => 8,
-        'RBU1(S1)G1' => 9,
+        'DSF2(S1)G1' => 15,
+        'RSD1(S1)G1' => 8,
+        'RSD2(S1)G1' => 7,
+        'RSD2(S1)G2' => 5,
+        'RSD2(S1)G3' => 9,
+        'RSD3(S1)G1' => 10,
+        'RSD3(S1)G2' => 5,
+        'RSD3(S1)G3' => 9,
+        'RAF2(S3)G2' => 5,
+        'RAF2(S3)G4' => 6,
+        'RBU1(S1)G1' => 10,
     ];
 
     /**
