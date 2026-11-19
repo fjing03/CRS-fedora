@@ -1912,16 +1912,16 @@
                 const guide = document.getElementById('slotWarningGuide');
                 const tail = document.getElementById('slotWarningTail');
                 if (kind === 'dayEnd') {
-                    head.textContent = 'This class does not fit before the day end (' + facts.dayEnd + ')';
-                    body.textContent = startLabel + ' plus the selected class duration (' + dur + ') runs past ' + facts.dayEnd + '.';
+                    head.textContent = 'Class runs past the last slot';
+                    body.textContent = 'Start: ' + startLabel + ' · Duration: ' + dur + '.';
                     guide.textContent = 'PICK AN EARLIER CELL';
                     tail.innerHTML = '— the grid ends at <strong style="color:var(--color-on-success-container)">' + facts.dayEnd + '</strong>.';
                 } else {
-                    head.textContent = 'None of your classes can run in ' + venue + ' at this cell';
-                    body.textContent = startLabel + ' plus the selected class duration (' + dur + ') runs into an existing event below'
-                        + (facts.next !== Infinity && hours[facts.next] ? ' — the class starting at ' + hours[facts.next] : '') + '.';
-                    guide.textContent = 'NOT ENOUGH FREE TIME BELOW';
-                    tail.innerHTML = '— pick a <strong style="color:var(--color-on-success-container)">Free Cell</strong>.';
+                    head.textContent = 'Class won’t fit in ' + venue;
+                    body.textContent = 'Start: ' + startLabel + ' · Duration: ' + dur + ' · Overlaps an existing event'
+                        + (facts.next !== Infinity && hours[facts.next] ? ' at ' + hours[facts.next] : '') + '.';
+                    guide.textContent = 'PICK ANOTHER SLOT';
+                    tail.innerHTML = '— look for a <strong style="color:var(--color-on-success-container)">Free Cell</strong>.';
                 }
                 /* the intent modal goes away first: the warning is the answer to
                    the Arrange click, and closing it must land on the timetable */

@@ -458,7 +458,7 @@
 <div class="modal-overlay" id="rejectReasonModal">
     <div class="modal">
         <div class="modal-header">
-            <h2 id="rejectReasonTitle">Rejection Reason</h2>
+            <h2 id="rejectReasonTitle">Reject Requests</h2>
             <button class="modal-close" onclick="closeRejectModal()" data-tip="Close">✕</button>
         </div>
         <div class="modal-body">
@@ -470,16 +470,16 @@
                 <button class="reject-preset-chip" onclick="applyRejectPreset('Lecturer Unavailable')">Lecturer Unavailable</button>
                 <button class="reject-preset-chip" onclick="applyRejectPreset('')">Other</button>
             </div>
-            <p class="section-heading-sub" style="margin-bottom:8px">Please Provide a Reason for Rejection (Required):</p>
+            <p class="section-heading-sub" style="margin-bottom:8px">Reason (required):</p>
             <textarea id="rejectReasonInput" placeholder="Enter rejection reason..." rows="4" class="modal-textarea"></textarea>
                 @include('partials.ui-irreversible-line')
         </div>
         <div class="modal-footer">
             <div class="modal-footer-left">
-                <button class="btn-outline" id="cancelRejectBtn" onclick="closeRejectModal()">Cancel</button>
+                <button class="btn-outline" id="cancelRejectBtn" onclick="closeRejectModal()">No, Keep Requests Pending</button>
             </div>
             <div class="modal-footer-right">
-                <button class="btn-danger" id="confirmRejectBtn" disabled onclick="rejectRequest()">Confirm Reject</button>
+                <button class="btn-danger" id="confirmRejectBtn" disabled onclick="rejectRequest()">Yes, Reject Requests</button>
             </div>
         </div>
     </div>
@@ -499,10 +499,10 @@
         </div>
         <div class="modal-footer">
             <div class="modal-footer-left">
-                <button class="btn-outline" onclick="closeApproveNotesModal()">Cancel</button>
+                <button class="btn-outline" onclick="closeApproveNotesModal()">No, Keep Requests Pending</button>
             </div>
             <div class="modal-footer-right">
-                <button class="btn-approve" id="confirmApproveBtn" onclick="confirmApproveWithNotes()">✓ Approve</button>
+                <button class="btn-approve" id="confirmApproveBtn" onclick="confirmApproveWithNotes()">Yes, Approve Requests</button>
             </div>
         </div>
     </div>
@@ -1420,7 +1420,7 @@
            on. Bulk reject has no single ID, so its title stays plain. */
         function setRejectModalTitle(id) {
             const title = document.getElementById('rejectReasonTitle');
-            if (title) title.textContent = (id == null) ? 'Rejection Reason' : 'Rejection Reason (#' + id + ')';
+            if (title) title.textContent = (id == null) ? 'Reject Requests' : 'Reject Request (#' + id + ')';
         }
 
         function openRejectModal(id) {

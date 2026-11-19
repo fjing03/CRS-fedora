@@ -4260,7 +4260,7 @@
             if ((selectedBlock || getGlobalTotal() > 0) && newVenue !== currentVenue) {
                 showConfirmModal(
                     'Change <span class="warn-keyword">Venue</span>?',
-                    'You have selected slots on the grid. Changing the <span class="warn-keyword">venue</span> will clear them.<br>Continue?',
+                    'Changing the <span class="warn-keyword">venue</span> clears all selected slots.<br>',
                     function() {
                         hideConfirmModal();
                         /* 2026-10-09 user decision: confirming the clear is an
@@ -4275,7 +4275,7 @@
                         discardAllSelections();
                         applyVenueChange(newVenue);
                     },
-                    { danger: true, confirmLabel: 'Yes, Change', cancelLabel: 'No, Keep My Selection' }
+                    { danger: true, confirmLabel: 'Yes, Change Venue', cancelLabel: 'No, Keep My Selection' }
                 );
                 // Cancel path: snap the dropdown back to the current venue
                 const cancelBtn = document.querySelector('#confirmModal .btn-outline');
@@ -4404,7 +4404,7 @@
             const titleCaseLabel = actionLabel.replace(/\b\w/g, function (c) { return c.toUpperCase(); });
             showConfirmModal(
                 'Change <span class="warn-keyword">' + titleCaseLabel + '</span>?',
-                'You have selected slots on the grid. Changing the <span class="warn-keyword">' + actionLabel + '</span> will remove them.<br>Continue?',
+                'Changing the <span class="warn-keyword">' + actionLabel + '</span> clears all selected slots.<br>',
                 function() {
                     hideConfirmModal();
                     /* 2026-10-09 user decision: the modal promises "will remove
@@ -4417,7 +4417,7 @@
                     discardAllSelections();
                     proceedFn();
                 },
-                { danger: true, confirmLabel: 'Yes, Change', cancelLabel: 'No, Keep My Selection' }
+                { danger: true, confirmLabel: 'Yes, Apply Change', cancelLabel: 'No, Keep My Selection' }
             );
             const cancelBtn = document.querySelector('#confirmModal .btn-outline');
             if (cancelBtn) {
@@ -4469,8 +4469,8 @@
             }
             const listHtml = rows.join('');
             showConfirmModal(
-                'Confirm Your Selection',
-                `<div style="margin-bottom:12px;font-weight:500;">You are about to submit a replacement request for the following ${rows.length > 1 ? rows.length + ' blocks' : 'block'}:</div>
+                'Submit Replacement Request?',
+                `<div style="margin-bottom:12px;font-weight:500;">Review the ${rows.length > 1 ? rows.length + ' blocks' : 'block'} before sending.</div>
                  <div style="border:1px solid var(--color-outline);border-radius:var(--radius-sm);padding:10px 14px;max-height:200px;overflow-y:auto;">${listHtml}</div>`,
                 function() {
                     hideConfirmModal();
@@ -4648,12 +4648,12 @@
                                    NO auto-resubmit. */
                                 showConfirmModal(
                                     'Submission <span class="warn-keyword">CONFLICT</span>',
-                                    'Some selections could not be <span class="warn-keyword">BOOKED</span>:<br>'
+                                    'Slots <span class="warn-keyword">not booked</span>:<br>'
                                         + '<div class="conflict-rows" style="border:1px solid var(--color-outline);border-radius:var(--radius-sm);padding:10px 14px;max-height:200px;overflow-y:auto;margin-top:8px;background:var(--color-error-container);">'
                                         + failed.join('')
                                         + '</div>'
-                                        + '<div style="margin-top:10px;font-size:13px;"><span class="ge-keyword">NOTE</span>: Another Staff Member May Have Booked This Slot Before Your Submission.</div>'
-                                        + '<div style="margin-top:4px;font-size:13px;">Please <span class="go-keyword">REFRESH</span> this page and <span class="go-keyword">PICK</span> another available slot.</div>',
+                                        + '<div style="margin-top:10px;font-size:13px;"><span class="ge-keyword">NOTE</span>: A colleague may have booked it first.</div>'
+                                        + '<div style="margin-top:4px;font-size:13px;"><span class="go-keyword">REFRESH</span> the page and <span class="go-keyword">PICK</span> another available slot.</div>',
                                     function() {
                                         hideConfirmModal();
                                         /* submission-conflict-refresh (the user's
@@ -4689,14 +4689,14 @@
                         });
                     }
                 },
-                { confirmLabel: 'Yes, Submit Request' }
+                { confirmLabel: 'Yes, Submit Request', cancelLabel: 'No, Keep My Selection' }
             );
         }
 
         function clearAll() {
             showConfirmModal(
-                'Clear All Selections',
-                'Are you sure you want to clear all selections across <span class="warn-keyword">all</span> weeks?<br>You can undo this from the toast that appears.',
+                'Clear All Selections?',
+                'Selections from <span class="warn-keyword">all</span> weeks are included;<br>use Undo in the toast to restore them.',
                 function() {
                     hideConfirmModal();
                     var savedBlock = selectedBlock ? { ...selectedBlock } : null;
@@ -4722,15 +4722,15 @@
                         updateCounter();
                     });
                 },
-                { danger: true, confirmLabel: 'Yes, Clear All', cancelLabel: 'No, Clear Nothing' }
+                { danger: true, confirmLabel: 'Yes, Clear All Selections', cancelLabel: 'No, Keep My Selection' }
             );
         }
 
         function navigateTo(url) {
             if (selectedBlock || getGlobalTotal() > 0) {
                 showConfirmModal(
-                    'Unsaved Changes',
-                    'You have selections that will be <span class="warn-keyword">lost</span> if you leave this page.<br>Are you sure you want to leave?',
+                    'Leave This Page?',
+                    'Your selections will be <span class="warn-keyword">lost</span>.<br>',
                     function() {
                         /* Confirmed leave → navigate at once; selections are in-memory
                            and die with the page (no clearing ceremony / undo toast).
@@ -4739,7 +4739,7 @@
                         allowUnload = true;
                         window.location.href = url;
                     },
-                    { danger: true, confirmLabel: 'Yes, Leave Page', cancelLabel: 'Stay' }
+                    { danger: true, confirmLabel: 'Yes, Leave Page', cancelLabel: 'No, Stay on This Page' }
                 );
             } else {
                 window.location.href = url;
@@ -4749,8 +4749,8 @@
         function goBack() {
             if (selectedBlock || getGlobalTotal() > 0) {
                 showConfirmModal(
-                    'Unsaved Changes',
-                    'You have selections that will be <span class="warn-keyword">lost</span> if you leave this page.<br>Are you sure you want to go back?',
+                    'Go Back?',
+                    'Your selections will be <span class="warn-keyword">lost</span>.<br>',
                     function() {
                         /* Confirmed leave → navigate at once; selections are in-memory
                            and die with the page (no clearing ceremony / 5s undo wait).
@@ -4759,7 +4759,7 @@
                         allowUnload = true;
                         BackNavigator.navigate();
                     },
-                    { danger: true, confirmLabel: 'Yes, Go Back', cancelLabel: 'Stay' }
+                    { danger: true, confirmLabel: 'Yes, Go Back', cancelLabel: 'No, Stay on This Page' }
                 );
             } else {
                 BackNavigator.navigate();

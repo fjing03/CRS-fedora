@@ -404,7 +404,7 @@
         <div class="modal-overlay" id="cancelConfirmOverlay" style="display:none">
             <div class="modal" style="max-width:680px">
                 <div class="modal-header">
-                    <h3 class="modal-title">Confirm Cancellation</h3>
+                    <h3 class="modal-title">Cancel Replacement Request?</h3>
                     <button class="modal-close" onclick="closeCancelConfirm()" data-tip="Close">✕</button>
                 </div>
                 <div class="modal-body" id="cancelConfirmBody">
@@ -417,7 +417,7 @@
                             <path d="M14.63 9.75h.01v.02h-.01z" fill="currentColor" />
                         </svg>
                     </div>
-                    <p class="confirm-warning">Are you sure you want to <span class="warn-action">CANCEL</span> this Replacement Request?</p>
+                    <p class="confirm-warning">The <span class="warn-action">original class</span> stays unchanged.</p>
                     {{-- 2026-11-05 (user ruling): ONE irreversible line for every
                          final decision — the shared partial (amber keyword). It
                          replaces the old red sentence so the four modals read
@@ -427,7 +427,7 @@
                 </div>
                 <div class="modal-footer">
                     <div class="modal-footer-left">
-                        <button class="btn-outline" onclick="closeCancelConfirm()">No, Keep It</button>
+                        <button class="btn-outline" onclick="closeCancelConfirm()">No, Keep Request</button>
                     </div>
                     <div class="modal-footer-right">
                         <button class="btn-danger" id="confirmCancelAction">Yes, Cancel Request</button>
