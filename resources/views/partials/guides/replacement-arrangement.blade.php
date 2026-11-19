@@ -1,13 +1,10 @@
 @if($guideTab === 'start')
     <h4>1. Choose the original class</h4>
     <p>On a phone, open <strong>Select a course and original slot</strong>. Choose <strong>Course</strong>, then <strong>Slot</strong>, and check the original date.</p>
-    <h4>2. Pick a venue and date</h4>
-    <p>Choose a <strong>Venue</strong>. Pick a date <strong>at least three working days after today</strong>, counting only weekdays that aren’t public holidays.</p>
-    <h4>3. Select a time that fits</h4>
-    <p>Pick an <strong>Available</strong> start time. If the whole class fits, the page selects the full block.</p>
-    <h4>4. Review and send</h4>
-    <p>Choose <strong>Submit Request</strong> to review the venue, date and time range. Choose <strong>Yes, Submit Request</strong> to send.</p>
-    <p>Track it in <strong>My Replacements</strong>. The new time is not confirmed until a Programme Leader approves it. If it is still <strong>Pending</strong> with <strong>three working hours or less</strong> before the proposed start, it is automatically rejected.</p>
+    <h4>2. Pick a venue, date and time</h4>
+    <p>Choose a <strong>Venue</strong> and a date at least three working days after today, counting only weekdays that aren’t public holidays. Pick an <strong>Available</strong> start time.</p>
+    <h4>3. Review and send</h4>
+    <p>Choose <strong>Submit Request</strong> to review, then <strong>Yes, Submit Request</strong> to send. Track it in <strong>My Replacements</strong>: only Programme Leader approval confirms it, and it’s automatically rejected if still <strong>Pending</strong> with three working hours or less before the proposed start.</p>
 @elseif($guideTab === 'reference')
     <h4>Original class and replacement slot</h4>
     <p><strong>Conflict Schedule</strong> identifies the class you’re replacing. <strong>Replacement Schedule</strong> is where you choose its new venue, week and time. Check both before submitting: the original class and the new time can fall in different weeks.</p>
@@ -49,10 +46,12 @@
         </tbody>
     </table>
     <p>Each slot is <strong>30 minutes</strong>. A two-hour class needs four consecutive slots on the same day. If the block runs past the last time shown, try an earlier start. On a phone, use <strong>Colours &amp; borders</strong> for the legend or tap a blocked time to inspect that specific slot.</p>
+    <p>Pick an <strong>Available</strong> start time. The page selects the full block only if the whole class fits.</p>
     <h4>Checking, changing or removing a selection</h4>
     <p>On desktop, <strong>Selection Summary</strong> shows the venue, date, time range and duration. Select a summary entry to return to its time, or use <strong>×</strong> to remove it.</p>
     <p>On a phone, tap the summary to open <strong>Saved selection</strong>. It shows the course, date, time, duration and venue. Choose <strong>Remove selection</strong> to clear it.</p>
     <p>Changing the course, original slot or venue can clear an existing selection. Read the confirmation before continuing. Leaving or refreshing the page can discard an unsent selection.</p>
+    <p>Choose <strong>Submit Request</strong> to review the venue, date and time range, then <strong>Yes, Submit Request</strong> to send.</p>
     <h4>After you submit</h4>
     <p>A successful submission takes you to <strong>My Replacements</strong>.</p>
     <ul>
