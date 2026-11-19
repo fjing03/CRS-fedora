@@ -1,3 +1,7 @@
+## 2026-11-19 — the empty queue says no requests are pending
+
+The unfiltered Pending view says “No pending requests” when nothing is waiting. “View all requests” uses Clear all to show decided requests, including Completed. A search or narrower filter with no results still says “No requests found.”
+
 ## 2026-11-19 — phone cards follow the table's sort
 
 For the same filters and sort, phone cards and desktop rows now show the same request order. Oldest submission first remains the default; saved sorts still apply. Desktop pagination and approval actions are unchanged.

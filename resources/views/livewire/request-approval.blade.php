@@ -182,6 +182,11 @@
             .cmp-arrow { transform: rotate(90deg); }
         }
 
+        #viewAllRequests { margin-top: 16px; }
+        @media (any-pointer: coarse) {
+            #viewAllRequests { min-width: 48px; min-height: 48px; }
+        }
+
         /* ───── Responsive Card View (base .request-card styles in theme.css) ───── */
         @media (max-width: 768px) {
             .grid-wrapper, .pagination-bar, .sort-hint { display: none !important; }
@@ -358,6 +363,7 @@
     </div>
     <h3 id="emptyTitle">No requests found</h3>
     <p id="emptyText">No requests match your search or filter criteria.</p>
+    <button type="button" class="btn-outline" id="viewAllRequests" onclick="clearAllFilters()" hidden>View all requests</button>
 </div>
 
 @include('partials.ui-summary-bar', [
@@ -821,6 +827,19 @@
             return html;
         }
 
+        function renderEmptyQueue(total) {
+            const noPending = total === 0
+                && document.getElementById('statusFilter').value === 'Pending'
+                && document.getElementById('searchInput').value === ''
+                && weekFilterValue('weekFilter') === 'all'
+                && weekFilterValue('weekFilterOriginal') === 'all';
+            document.getElementById('emptyTitle').textContent = noPending ? 'No pending requests' : 'No requests found';
+            document.getElementById('emptyText').textContent = noPending
+                ? 'There are no requests waiting for your review.'
+                : 'No requests match your search or filter criteria.';
+            document.getElementById('viewAllRequests').hidden = !noPending || MockData.approvalRequests.length === 0;
+        }
+
         // ── Render table body ──
         function renderBody(sorted) {
             const tbody = document.getElementById('tableBody');
@@ -829,6 +848,7 @@
 
             if (page.length === 0) {
                 tbody.innerHTML = '';
+                renderEmptyQueue(sorted.length);
                 document.getElementById('emptyState').style.display = '';
                 document.getElementById('gridWrapper').style.display = 'none';
                 document.getElementById('paginationBar').style.display = 'none';
