@@ -1,3 +1,7 @@
+## 2026-11-19 — Week summary works on touch
+
+Removed the unused header Summary icon. **Week summary** is the only opener; tapping a card turns it over, and its info button opens the explanation above the sheet. Closing the explanation leaves the sheet open. Desktop cards, counts and print stay unchanged. Verified at 390px with Chromium touch emulation in both themes.
+
 ## 2026-11-18 — read the selected room’s rules in the guide
 
 **How to use this page → Venue rules** lists the selected room’s default session types, any programme restriction, and module exceptions by session type. Programme Leaders see the full exception list; other lecturers see matching module and session types they teach this semester. The tab is available on phones and does not check time availability or change any booking rules.

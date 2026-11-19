@@ -23,15 +23,9 @@ import { closeFiltersPanel, openFiltersPanel, withFilters } from './helpers/filt
 const BASE = process.env.CRS_BASE || 'http://127.0.0.1:8030';
 const PW = 'Tarumt@2026';
 
+// Timetables now use TimetableResponsive; My Replacements still uses SummarySheet.
 const FLIP_PAGES = [
-  /* 2026-11-15 — SDD `my-timetable-responsive-prompt` T17a: My Timetable was
-     REMOVED from this list. Its page root now carries `.tt-responsive`, its header
-     no longer renders `$summaryButton` (T11), and `SummarySheet.init()` bails on the
-     scope class (T9) — so `/my-timetable-ui` has no `#summaryButton` and no sheet to
-     open. The phone Week summary is that lane's own sheet, proven by
-     `tests/timetable-responsive.spec.ts` (T16). Venue stays: it is an unopted
-     SummarySheet caller and this lane must not disturb it. */
-  { name: 'venue-timetable', path: '/venue-timetable-ui', state: '.auth/staff-5770.json' },
+  { name: 'my-replacements', path: '/my-replacements', state: '.auth/staff-5770.json' },
 ];
 
 const PLAIN = { name: 'replacement-history', path: '/student-class-replacements' };
@@ -102,7 +96,7 @@ test.describe('T11a — relocation, repaint and the empty view', () => {
       expect(at.inSheet, `${pg.name}: the section moved into the shared sheet`).toBe(true);
       expect(at.sheetHidden, `${pg.name}: the sheet itself is closed`).toBe(true);
       /* the frozen ids still exist — moved, never re-rendered */
-      await expect(p1.locator('#summarySheetBody #sumTotal')).toHaveCount(1);
+      await expect(p1.locator('#summarySheetBody #summaryNeeds')).toHaveCount(1);
       await phone.close();
 
       const desk = await browser.newContext({ viewport: { width: 1440, height: 900 }, storageState: pg.state });
@@ -112,22 +106,15 @@ test.describe('T11a — relocation, repaint and the empty view', () => {
       at = await cardPlacement(p2);
       expect(at.inSheet, `${pg.name}: inline at 1440`).toBe(false);
       expect(at.btnHiddenAttr, `${pg.name}: button hidden at 1440`).toBe(true);
-      await expect(p2.locator('#summarySection #sumTotal')).toBeVisible();
+      await expect(p2.locator('#summarySection #summaryNeeds')).toBeVisible();
       await desk.close();
     }
   });
 
   test('opening moves nothing but shows the cards, the lock and the expanded state', async ({ browser }) => {
-    /* 2026-11-15 — SDD `my-timetable-responsive-prompt` T17a: retargeted from
-       `/my-timetable-ui` to `/venue-timetable-ui`. The claim is SummarySheet's, not
-       My Timetable's: opening the sheet moves no node, shows the five cards, holds
-       the lock and lands focus in the panel. My Timetable left this machinery
-       (T9 gate + T11 header opt-in removal); its Week summary is
-       `TimetableResponsive`'s own sheet, receipted by
-       `tests/timetable-responsive.spec.ts` (T16). */
     const ctx = await browser.newContext({ viewport: { width: 390, height: 900 }, storageState: '.auth/staff-5770.json' });
     const page = await ctx.newPage();
-    await page.goto(BASE + '/venue-timetable-ui', { waitUntil: 'networkidle' });
+    await page.goto(BASE + '/my-replacements', { waitUntil: 'networkidle' });
     await page.waitForTimeout(900);
 
     await page.locator('#summaryButton').click();
@@ -145,15 +132,15 @@ test.describe('T11a — relocation, repaint and the empty view', () => {
     /* Part 1 — a real repaint (status filter, My Replacements). The SAME filter is
        read twice, inline at 1440 and inside the phone sheet; both are painted by
        the page, so a stale or orphaned node would disagree. The filter measurably
-       changes the number (4 -> 2 on the demo data), so "nothing repainted" cannot
-       pass by accident. */
+       changes Classes to Arrange by retaining only approved rows, so reading an
+       unchanged value cannot pass by accident. */
     const desk = await browser.newContext({ viewport: { width: 1440, height: 900 }, storageState: '.auth/staff-5770.json' });
     const dp = await desk.newPage();
     await dp.goto(BASE + '/my-replacements', { waitUntil: 'networkidle' });
     await dp.waitForTimeout(1000);
     const allCount = ((await dp.locator('#summarySection #summaryNeeds').textContent()) || '').trim();
     await withFilters(dp, async () => {
-      await dp.selectOption('#statusFilter', 'none');
+      await dp.selectOption('#statusFilter', 'approved');
     });
     await dp.waitForTimeout(700);
     const filtInline = ((await dp.locator('#summarySection #summaryNeeds').textContent()) || '').trim();
@@ -170,7 +157,7 @@ test.describe('T11a — relocation, repaint and the empty view', () => {
        so the panel opens for the change and closes again before the sheet opens
        (two overlays never share the page — design §6.7). */
     await withFilters(pp, async () => {
-      await pp.selectOption('#statusFilter', 'none');
+      await pp.selectOption('#statusFilter', 'approved');
     });
     await pp.waitForTimeout(800);
     await pp.locator('#summaryButton').click();
@@ -184,9 +171,10 @@ test.describe('T11a — relocation, repaint and the empty view', () => {
     const vctx = await browser.newContext({ viewport: { width: 390, height: 900 }, storageState: '.auth/staff-5770.json' });
     const vp = await vctx.newPage();
     await vp.goto(BASE + '/venue-timetable-ui', { waitUntil: 'networkidle' });
-    await vp.waitForTimeout(1200);
+    await vp.locator('#ttSummaryButton').click();
+    await expect(vp.locator('#ttSheet')).toBeVisible();
     const wired = await vp.evaluate(() => {
-      const sheet = document.getElementById('summarySheet');
+      const sheet = document.getElementById('ttSheet');
       const section = document.getElementById('summarySection');
       const findIgnore = function (start: Element | null) {
         let node = start;
@@ -200,7 +188,7 @@ test.describe('T11a — relocation, repaint and the empty view', () => {
       return {
         sheetInIgnore: !!ignore,
         sectionInSameIgnore: !!(ignore && section && ignore.contains(section)),
-        inSheet: !!section && section.parentNode === document.getElementById('summarySheetBody'),
+        inSheet: !!section && section.parentNode === document.getElementById('ttSheetBody'),
       };
     });
     expect(wired.inSheet, 'the venue page relocated its cards too').toBe(true);
@@ -246,15 +234,9 @@ test.describe('T11a — relocation, repaint and the empty view', () => {
 
 test.describe('T11b — closing, layering, the plain variant and print', () => {
   test('three ways to close, all returning focus to the button', async ({ browser }) => {
-    /* 2026-11-15 — SDD `my-timetable-responsive-prompt` T17a: retargeted to
-       `/venue-timetable-ui` for the same reason as the receipt above — the three
-       close paths belong to SummarySheet, which this lane gates OFF on My Timetable
-       (T9) and whose header opener it removes (T11). My Timetable's sheet is
-       `TimetableResponsive`'s, receipted by `tests/timetable-responsive.spec.ts`
-       (T16). */
     const ctx = await browser.newContext({ viewport: { width: 390, height: 900 }, storageState: '.auth/staff-5770.json' });
     const page = await ctx.newPage();
-    await page.goto(BASE + '/venue-timetable-ui', { waitUntil: 'networkidle' });
+    await page.goto(BASE + '/my-replacements', { waitUntil: 'networkidle' });
     await page.waitForTimeout(900);
     const btn = page.locator('#summaryButton');
 
@@ -275,15 +257,9 @@ test.describe('T11b — closing, layering, the plain variant and print', () => {
   });
 
   test('the ⓘ opens ABOVE the sheet; one Escape closes only the ⓘ; the trap yields to it', async ({ browser }) => {
-    /* 2026-11-15 — SDD `my-timetable-responsive-prompt` T17a: retargeted to
-       `/venue-timetable-ui`. The layering rule (ⓘ above the sheet, one Escape per
-       layer, trap suspension) is SummarySheet's and is untouched by this lane on
-       every page that still uses it. The My Timetable arm cannot hold: no
-       `#summaryButton`, no SummarySheet (T9 gate), and its own sheet's ⓘ/Escape
-       behaviour is receipted by `tests/timetable-responsive.spec.ts` (T16). */
     const ctx = await browser.newContext({ viewport: { width: 390, height: 900 }, storageState: '.auth/staff-5770.json' });
     const page = await ctx.newPage();
-    await page.goto(BASE + '/venue-timetable-ui', { waitUntil: 'networkidle' });
+    await page.goto(BASE + '/my-replacements', { waitUntil: 'networkidle' });
     await page.waitForTimeout(900);
 
     await page.locator('#summaryButton').click();
@@ -422,17 +398,9 @@ test.describe('T11b — closing, layering, the plain variant and print', () => {
   });
 
   test('print: the sheet never captures the page, and the cards come back afterwards', async ({ browser }) => {
-    /* 2026-11-15 — SDD `my-timetable-responsive-prompt` T17a: retargeted to
-       `/venue-timetable-ui`. The subject is SummarySheet's print pair
-       (`beforeprint` restores the moved nodes, `afterprint` re-relocates them), and
-       it survives exactly on the pages that still use SummarySheet. On My Timetable
-       the afterprint re-relocation cannot hold by design: `SummarySheet.init()`
-       bails on `.tt-responsive` (T9), and the print rules that un-hide the legend
-       and cards are the lane's own `theme.css` section, receipted by
-       `tests/timetable-responsive.spec.ts` (T16). */
     const ctx = await browser.newContext({ viewport: { width: 390, height: 900 }, storageState: '.auth/staff-5770.json' });
     const page = await ctx.newPage();
-    await page.goto(BASE + '/venue-timetable-ui', { waitUntil: 'networkidle' });
+    await page.goto(BASE + '/my-replacements', { waitUntil: 'networkidle' });
     await page.waitForTimeout(900);
 
     await page.locator('#summaryButton').click();

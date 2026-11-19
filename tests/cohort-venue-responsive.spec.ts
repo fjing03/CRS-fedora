@@ -434,6 +434,38 @@ function expectTouchTargets(found: Control[], where: string): void {
 
 /* ── the Week summary sheet (shared chrome) ── */
 
+for (const [name, path] of [['Cohort', COHORT_TT], ['Venue', VENUE_TT]]) {
+  test(`${name}: phone Week summary opens and exposes the card explanation on tap`, async ({ browser }) => {
+    const context = await browser.newContext({
+      viewport: { width: 390, height: 844 },
+      hasTouch: true,
+      isMobile: true,
+      storageState: STAFF_AUTH,
+    });
+    try {
+      const page = await context.newPage();
+      await page.goto(BASE + path);
+      await expect.soft(page.locator('#summaryButton')).toHaveCount(0, { timeout: 1000 });
+      await page.locator('#ttSummaryButton').tap();
+      const sheet = page.locator('#ttSheet');
+      await expect(sheet).toBeVisible();
+      const card = sheet.locator('.summary-card').first();
+      const label = (await card.locator('.summary-label').textContent())?.trim() ?? '';
+      await card.tap({ position: { x: 30, y: 30 } });
+      await expect(card).toHaveClass(/is-flipped/);
+      await card.locator('.summary-info').tap({ timeout: 5000 });
+      const explanation = page.locator('#summaryExplainModal');
+      await expect(explanation).toBeVisible();
+      await expect(explanation.locator('#summaryExplainTitle')).toHaveText(label);
+      await explanation.locator('.btn-close-modal').tap();
+      await expect(explanation).toBeHidden();
+      await expect(sheet).toBeVisible();
+    } finally {
+      await context.close();
+    }
+  });
+}
+
 async function openSummarySheet(page: Page, pageName: string): Promise<{ inlineCards: number }> {
   const inlineCards = await page.evaluate(
     () => document.querySelectorAll('#summarySection .summary-card').length,

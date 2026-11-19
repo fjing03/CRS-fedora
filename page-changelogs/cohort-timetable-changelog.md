@@ -1,3 +1,7 @@
+## 2026-11-19 — Week summary works on touch
+
+Removed the unused header Summary icon. **Week summary** is the only opener; tapping a card turns it over, and its info button opens the explanation above the sheet. Closing the explanation leaves the sheet open. Desktop cards, counts and print stay unchanged. Verified at 390px with Chromium touch emulation in both themes.
+
 ## 2026-11-18 — the phone detail footer is one row again
 
 At ≤520 the details pop-up footer used to stack a full-width Close bar above a lone

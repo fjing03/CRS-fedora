@@ -535,7 +535,6 @@
             .tt-responsive[data-tt-page="venue"] .timetable tbody td:hover,
             .tt-responsive[data-tt-page="venue"] .timetable td.hour-cell:hover { background: transparent; }
             .tt-responsive[data-tt-page="venue"] .event-block:hover { filter: none; box-shadow: none; }
-            .tt-responsive[data-tt-page="venue"] .summary-card:hover .summary-card-inner { transform: none; }
             .tt-responsive[data-tt-page="venue"] .legend-item:hover { background: transparent; }
         }
 
@@ -632,7 +631,7 @@
     </style>
 
     <!-- ─── Page Header ─── -->
-    @include('partials.ui-page-header', ['title' => 'Venue Timetable', 'guideToggle' => true, 'guideModal' => true, 'summaryButton' => true])
+    @include('partials.ui-page-header', ['title' => 'Venue Timetable', 'guideToggle' => true, 'guideModal' => true])
 
     @include('partials.ui-guide-modal', [
         'guideSubtitle' => 'Venue Timetable',

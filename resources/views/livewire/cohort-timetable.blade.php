@@ -202,7 +202,6 @@
             .tt-responsive[data-tt-page="cohort"] .timetable tbody td:hover,
             .tt-responsive[data-tt-page="cohort"] .timetable td.hour-cell:hover { background: transparent; }
             .tt-responsive[data-tt-page="cohort"] .event-block:hover { filter: none; box-shadow: none; }
-            .tt-responsive[data-tt-page="cohort"] .summary-card:hover .summary-card-inner { transform: none; }
             .tt-responsive[data-tt-page="cohort"] .legend-item:hover { background: transparent; }
         }
         /* 48 × 48 on touch-capable devices only (capability, not width) — the
@@ -227,7 +226,7 @@
     </style>
 
     <!-- ─── Page Header ─── -->
-    @include('partials.ui-page-header', ['title' => 'Cohort Timetable', 'guideToggle' => true, 'guideModal' => true, 'summaryButton' => true])
+    @include('partials.ui-page-header', ['title' => 'Cohort Timetable', 'guideToggle' => true, 'guideModal' => true])
 
     @include('partials.ui-guide-modal', [
         'guideSubtitle' => 'Cohort Timetable',

@@ -2274,7 +2274,9 @@ body.summary-locked { overflow: hidden; }
 body.summary-sheet-open {
     overflow: hidden;
 }
-body.summary-sheet-open #summaryExplainModal {
+/* The full explanation must sit above whichever sheet opened it. */
+body.summary-sheet-open #summaryExplainModal,
+body.tt-sheet-open .tt-responsive:is([data-tt-page="cohort"], [data-tt-page="venue"]) #summaryExplainModal {
     z-index: 1400;
 }
 
