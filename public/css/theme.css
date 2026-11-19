@@ -1103,6 +1103,10 @@ body {
 .urgency-mid { color: var(--color-warning); font-weight: 600; white-space: nowrap; }
 .urgency-low { color: var(--color-success); font-weight: 500; white-space: nowrap; }
 
+/* The replacement lists and their detail panels use dark surfaces. */
+html.dark .replacement-countdowns .urgency-high { color: var(--color-on-error-container); }
+html.dark .replacement-countdowns .urgency-low { color: var(--color-on-success-container); }
+
 /* ───── Grid Wrapper ───── */
 .grid-wrapper {
     position: relative;

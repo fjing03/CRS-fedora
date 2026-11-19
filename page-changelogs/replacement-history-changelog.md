@@ -1,3 +1,7 @@
+## 2026-11-19 — clearer countdown text in dark mode
+
+Overdue and longer Working Days Left countdowns are easier to read in the table, cards and details. The wording and working-day calculation are unchanged.
+
 ## 2026-11-19 — countdowns match the request state
 
 Approved and Completed classes keep their original schedule but no longer show an original-slot countdown in the table or phone cards, matching the Original tab. Classes that still need arrangement keep their countdown.

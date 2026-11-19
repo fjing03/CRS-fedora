@@ -178,7 +178,7 @@
      template runs UNCHANGED below except for the documented BRIDGE PATCH
      marks. PAGE_DATA.replacementHistory carries the mock's exact row shape,
      derived from the real DB (my cohort, approved + pending — FR 1.4). --}}
-<div class="lw-page ui-cards-page">
+<div class="lw-page ui-cards-page replacement-countdowns">
     @include('partials.page-data-script', ['payload' => $payload])
 
         <!-- ─── Page Header ─── -->

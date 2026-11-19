@@ -1,3 +1,7 @@
+## 2026-11-19 — clearer countdown text in dark mode
+
+Overdue and longer Working Days Left countdowns are easier to read in the table, cards and details. The wording and working-day calculation are unchanged.
+
 ## 2026-11-19 — Summary Card numbers are clearer in both themes
 
 Status numbers use more readable foregrounds from the existing colour families. Card fills, borders, labels and counts are unchanged.

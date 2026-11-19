@@ -221,7 +221,7 @@
 
 @endsection
 
-<div class="lw-page ui-cards-page">
+<div class="lw-page ui-cards-page replacement-countdowns">
     @include('partials.page-data-script', ['payload' => $payload])
 
         <!-- ─── Page Header ─── -->

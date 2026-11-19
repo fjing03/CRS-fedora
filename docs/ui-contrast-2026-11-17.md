@@ -1,8 +1,10 @@
 # Contrast audit — both themes (2026-11-17)
 
 **Status: PARTIALLY APPLIED (2026-11-19).** The live Summary Card numeric slice (C1–C3, C6, and
-positive C8) is applied and browser-verified, including Cohort and Venue. The other text findings
-and all control-boundary findings remain open. The original measurements below are the baseline.
+positive C8) is applied and browser-verified, including Cohort and Venue. Dark countdown text (C4–C5)
+is also fixed: on both replacement lists it measures 6.93:1 red and 7.44:1 green on tables,
+phone cards and details, and 5.89:1 / 6.32:1 on hovered rows. C7, C9 and control-boundary
+findings remain open. The original measurements below are the baseline.
 
 The owner approved a darker light-theme amber made from two existing foreground tokens
 (`--color-on-warning-container` and `--color-on-tertiary`). Dark pending keeps its existing amber.
