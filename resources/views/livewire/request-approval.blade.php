@@ -13,11 +13,20 @@
 
         /* ───── Column Widths ───── */
         .col-no { width: 40px; text-align: center; }
-        .col-original, .col-replacement { white-space: normal; }
-
+        #timetable :is(.col-original, .col-replacement) {
+            --approval-slot-width: clamp(184px, 12vw, 224px);
+            width: var(--approval-slot-width);
+            min-width: var(--approval-slot-width);
+            white-space: normal;
+        }
+        #timetable :is(.col-original, .col-replacement) .class-time {
+            white-space: nowrap;
+        }
         .col-replacement .cell-class-block .class-time {
             font-weight: 600;
-            white-space: nowrap;
+        }
+        #timetable .col-replacement .cell-class-block :is(.urgency-high, .urgency-mid, .urgency-low) {
+            white-space: normal;
         }
         .col-replacement .cell-class-block .class-venue {
             font-size: 11px;
@@ -682,8 +691,8 @@
             { label: 'Staff (Proposer)', sortable: true, field: 'lecturer', tip: 'The staff member who submitted the request — sorted by name' },
             { label: 'Course', sortable: true, field: 'courseCode', tip: UiLabels.courseTipSubject },
             { label: 'Cohort', sortable: false, tip: 'Cohort(s) affected by this class — one per line; not sortable because a multi-cohort row has no single value' },
-            { label: 'Original Slot', sortable: true, field: 'classDate', tip: 'Original slot the request refers to — its state varies (still upcoming, replaced, cancelled, holiday, etc.)' },
-            { label: 'Requested Slot', sortable: true, field: 'replacementDate', tip: 'The new slot proposed for this class — date, time and venue' },
+            { label: 'Original Slot', cls: 'col-original', sortable: true, field: 'classDate', tip: 'Original slot the request refers to — its state varies (still upcoming, replaced, cancelled, holiday, etc.)' },
+            { label: 'Requested Slot', cls: 'col-replacement', sortable: true, field: 'replacementDate', tip: 'The new slot proposed for this class — date, time and venue' },
             { label: 'Request Status', sortable: true, field: 'status', tip: 'Current approval status' },
             { label: 'Actions', sortable: false, tip: 'Approve or reject this request' }
         ];
@@ -808,7 +817,7 @@
                the modal prints the same codes joined with ' + '. */
             var cohortCodes = (r.cohorts || []).map(compactCohort);
             html += '<td class="col-cohort">' + (cohortCodes.length ? cohortCodes.join('<br>') : '—') + '</td>';
-            html += '<td>' + HtmlBuilder.classBlock(r, { merged: true, venueCodeOnly: true }) + '</td>';
+            html += '<td class="col-original">' + HtmlBuilder.classBlock(r, { merged: true, venueCodeOnly: true }) + '</td>';
 
             // Proposed Replacement — slot validity as a status-colored badge beside the venue
             const slotBadge = '<span class="slot-badge ' + (r.slotValidity === 'conflict' ? 'slot-conflict' : 'slot-valid') + '" data-tip="' + (r.slotValidity === 'conflict' ? (r.conflictReason || 'Slot conflict') : 'Slot available') + '">' + (r.slotValidity === 'conflict' ? '⚠' : '✓') + '</span>';

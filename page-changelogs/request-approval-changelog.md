@@ -1,3 +1,7 @@
+## 2026-11-19 — Original and Requested Slot columns match
+
+The two schedule columns now share a width. Time ranges stay on one line, and a long Pending countdown can wrap without widening only the Requested Slot column. The existing table, scroll controls and phone cards stay in place.
+
 ## 2026-11-19 — the empty queue says no requests are pending
 
 The unfiltered Pending view says “No pending requests” when nothing is waiting. “View all requests” uses Clear all to show decided requests, including Completed. A search or narrower filter with no results still says “No requests found.”
