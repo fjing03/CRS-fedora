@@ -73,14 +73,15 @@ A web application that replaces the manual Google-Sheets-based class replacement
 - **Computer Labs** (cap 28): B005, B009–B011 — Practical-only 'P' sessions
 - **Cisco Specialized Lab** (cap 32): B006 — priority for Networking/IoT workloads
 - **Excluded:** Block C venues (operational boundary for prototype)
-- **MPU-3133 venue rule (user decision 2026-08-01):** may use **tutorial rooms OR lecture halls — labs excluded only**. Generalized in revised FR&NFR as **FR 4.7**: modules with session-type restrictions filter venues by allowed session type.
+- **MPU-3133 venue rule (SUPERSEDES the 2026-08-01 ruling — user decision 2026-11-19):** **tutorial rooms only; no lecture hall.** The rule keys on the group size: while the group holds **35 or fewer** students, no hall is allowed (35 is exactly a tutorial room, so a hall is never needed). If the group ever grows past 35, the ruling is re-opened with the owner — do not allow halls on your own. Live state today: `modules.allowed_session_types = 'T'` and session #57 (headcount 35) sits in tutorial room B015, so the system already behaves this way. The original 2026-08-01 wording allowed tutorials **or** lecture halls — that is retired. Generalized in revised FR&NFR as **FR 4.7**: modules with session-type restrictions filter venues by allowed session type.
+  - **Mismatch to respect, not to "fix":** `ModulesSeeder.php` still lists MPU-3133 as `L,T`, and the seeder's student counts would make the group 44. Re-seeding would therefore reintroduce a hall-eligible MPU-3133 and silently break this ruling.
 - **Enforced today:** see [`docs/venue-restrictions.md`](docs/venue-restrictions.md) — B005 no-Diploma (drives the live derived-conflict flag), B006 networking priority, P→labs (doc-only until Wave 3b booking validation).
 
 ### Edge cases the engine must handle
 - No common slot found → return empty state, never crash
 - Single-cohort request → 3 vectors (lecturer × cohort × room)
 - All-day occupancy → correct empty result
-- Session-type venue restrictions (e.g. MPU-3133 → exclude labs; a module marked P must use a lab; L-only modules must not use labs)
+- Session-type venue restrictions (e.g. MPU-3133 → tutorial rooms only, so labs **and** lecture halls excluded; a module marked P must use a lab; L-only modules must not use labs)
 - **Duration-aware windows:** engine only returns windows ≥ the original class duration; clicking a green cell selects the whole contiguous block
 
 ### Replacement flow decisions (user-confirmed 2026-08-01)
@@ -89,7 +90,7 @@ A web application that replaces the manual Google-Sheets-based class replacement
 3. **Original block release:** after PL approval, the original class block is marked replaced/cancelled and its old time+room become **bookable by others**; the new slot becomes `occupied`.
 4. **PL Master Configuration Panel: DROPPED** — not in FR&NFR; specs V2 mention is superseded by FR&NFR as source of truth.
 5. **Notifications:** implement exactly FR 1.9 (students on timetable updates), 4.15 (PL on submission), 2.13 (lecturer on outcome); all sent via DB-backed queue (FR 4.16). No cross-lecturer alerts unless requested later.
-6. **MPU-3133 venue rule:** tutorial rooms + lecture halls OK, labs excluded (see §3 venue rules).
+6. **MPU-3133 venue rule (2026-11-19, replaces the 2026-08-01 hall allowance):** tutorial rooms **only** while the group is 35 or fewer; no lecture hall, labs excluded (see §3 venue rules).
 
 ### Auto-reject rule (user-confirmed 2026-11-06)
 A **Pending** replacement request is **automatically rejected** when its proposed start is within — or
