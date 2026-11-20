@@ -1,3 +1,7 @@
+## 2026-11-20 — the timetable starts higher on tablets
+
+From 769 to 1100px, the setup cards sit two per row instead of stacking. Without an original slot, the empty Class Details card stays out of the way and Selection Summary spans the row. At 1024×768, the timetable header and part of the first day are visible without scrolling. The phone sheet and wider desktop layout are unchanged.
+
 ## 2026-11-20 — the submit confirmation reads as facts, not a sentence
 
 “Submit Replacement Request?” reviewed the block in a single 13px line —

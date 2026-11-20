@@ -1931,8 +1931,19 @@
             }
         }
 
-        @media (max-width: 1100px) {
+        @media (max-width: 768px) {
             .toolbar-restructure.ra-top-zone { grid-template-columns: minmax(0, 1fr); }
+        }
+
+        /* Share each tablet row so the timetable starts within the first screen. */
+        @media (768px < width <= 1100px) {
+            .toolbar-restructure.ra-top-zone { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            .toolbar-restructure.ra-top-zone:not(:has(.ra-class-details.has-slot)) #classDetailsCard {
+                display: none;
+            }
+            .toolbar-restructure.ra-top-zone:not(:has(.ra-class-details.has-slot)) .ra-selection-summary {
+                grid-column: 1 / -1;
+            }
         }
 
         @media (min-width: 1101px) {
