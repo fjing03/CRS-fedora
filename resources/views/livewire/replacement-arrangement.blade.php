@@ -645,6 +645,64 @@
         .card-row svg { flex: 0 0 auto; opacity: 0.85; }
         .card-row .card-row-text { min-width: 0; }
 
+        /* 2026-11-20 (user, "Submit Replacement Request?" layout): the review
+           block is ONE FACT PER ROW now — the same anatomy as the Selected
+           Summary card (icon, then the fact) in the card's own order, plus the
+           slot's identity (course, venue) at the top. The label column is
+           fixed so every value starts on the same x, and the only rule left is
+           the hairline BETWEEN two saved blocks: one block needs no container,
+           no border and no inner scroll (the pop-up body already scrolls).
+           Rows share a 20px line box, so icon, label and value sit on one
+           optical line at every width; nothing is width-gated. */
+        .ra-review-intro {
+            margin-bottom: 10px;
+            font-weight: 500;
+        }
+        .ra-review {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .ra-review-block + .ra-review-block {
+            padding-top: 12px;
+            border-top: 1px solid var(--color-outline);
+        }
+        .ra-review-facts {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            margin: 0;
+        }
+        .ra-review-row {
+            display: flex;
+            align-items: flex-start;
+            min-width: 0;
+        }
+        /* the second group ("when") opens a beat after the slot's identity */
+        .ra-review-row--group { margin-top: 6px; }
+        .ra-review-row dt {
+            flex: 0 0 62px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 11px;
+            font-weight: 600;
+            line-height: 20px;
+            color: var(--color-on-surface-variant);
+        }
+        .ra-review-row dt svg { flex: 0 0 auto; opacity: 0.9; }
+        .ra-review-row dt span { min-width: 0; }
+        .ra-review-row dd {
+            flex: 1 1 auto;
+            min-width: 0;
+            margin: 0;
+            font-size: 13px;
+            font-weight: 500;
+            line-height: 20px;
+            color: var(--color-on-surface);
+            overflow-wrap: anywhere;
+        }
+
         .card-remove {
             position: absolute;
             top: 6px;
@@ -3528,8 +3586,12 @@
            strings live here instead of being copied into each builder.
            13px, currentColor, aria-hidden — the page's existing vocabulary. */
         const RA_ICONS = {
+            course: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>',
             venue: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0z"/><circle cx="12" cy="10" r="3"/></svg>',
             week: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>',
+            /* the same calendar shell as `week`, marked with the day's dot —
+               "this one date", not "the week it sits in" */
+            date: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><circle cx="12" cy="15" r="1.6"/></svg>',
             time: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
             duration: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 2h12M6 22h12M8 2v4a4 4 0 0 0 8 0V2M8 22v-4a4 4 0 0 1 8 0v4"/></svg>',
             cohort: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>'
@@ -4455,6 +4517,22 @@
             }
             /* multi-week model: summarize EVERY saved selection, not just the week on screen */
             const shortDayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+            /* 2026-11-20 (user, "Submit Replacement Request?" layout): the
+               review block lists ONE FACT PER ROW instead of one sentence with
+               `·` separators — Course, Venue, Week, Date, Time, Slots — each
+               with the page's own icon vocabulary. The values, their sources
+               and the submission itself are untouched; only the presentation
+               of this section changed. */
+            const reviewCourse = courseCtx();
+            const courseLabel = reviewCourse && reviewCourse.code
+                ? escHtml(String(reviewCourse.code)) + (reviewCourse.type ? ' (' + escHtml(String(reviewCourse.type)) + ')' : '')
+                : '';
+            function reviewRow(icon, label, value, extraClass) {
+                return '<div class="ra-review-row' + (extraClass ? ' ' + extraClass : '') + '">'
+                    + '<dt>' + icon + '<span>' + label + '</span></dt>'
+                    + '<dd>' + value + '</dd>'
+                    + '</div>';
+            }
             const rows = [];
             for (const venue in selectedSlotsByVenue) {
                 for (const week in selectedSlotsByVenue[venue]) {
@@ -4464,14 +4542,24 @@
                     const startStr = hours[block.startHour];
                     const endStr = add30min(hours[block.endHour - 1]);
                     const slotCount = block.endHour - block.startHour;
-                    rows.push(`<div style="padding:3px 0;font-size:13px;">${venue} · (${weekData[week].label}) ${shortDayNames[block.day]}, ${dayData.date}, ${to12h(startStr)} ~ ${to12h(endStr)} · ${slotCount} slots</div>`);
+                    /* 30-minute slots → hours, the summary card's own wording */
+                    const durH = slotCount / 2;
+                    const durLabel = (Number.isInteger(durH) ? durH : durH.toFixed(1)) + (durH === 1 ? ' hr' : ' hrs');
+                    rows.push('<div class="ra-review-block"><dl class="ra-review-facts">'
+                        + (courseLabel ? reviewRow(RA_ICONS.course, 'Course', courseLabel) : '')
+                        + reviewRow(RA_ICONS.venue, 'Venue', escHtml(String(venue)))
+                        + reviewRow(RA_ICONS.week, 'Week', escHtml(String(weekData[week].label)), 'ra-review-row--group')
+                        + reviewRow(RA_ICONS.date, 'Date', escHtml(shortDayNames[block.day] + ', ' + dayData.date))
+                        + reviewRow(RA_ICONS.time, 'Time', to12h(startStr) + ' \u2013 ' + to12h(endStr))
+                        + reviewRow(RA_ICONS.duration, 'Slots', slotCount + ' slots (' + durLabel + ')')
+                        + '</dl></div>');
                 }
             }
             const listHtml = rows.join('');
             showConfirmModal(
                 'Submit Replacement Request?',
-                `<div style="margin-bottom:12px;font-weight:500;">Review the ${rows.length > 1 ? rows.length + ' blocks' : 'block'} before sending.</div>
-                 <div style="border:1px solid var(--color-outline);border-radius:var(--radius-sm);padding:10px 14px;max-height:200px;overflow-y:auto;">${listHtml}</div>`,
+                '<div class="ra-review-intro">Review the ' + (rows.length > 1 ? rows.length + ' blocks' : 'block') + ' before sending.</div>'
+                    + '<div class="ra-review">' + listHtml + '</div>',
                 function() {
                     hideConfirmModal();
                     /* BRIDGE PATCH: the request really goes to the backend —

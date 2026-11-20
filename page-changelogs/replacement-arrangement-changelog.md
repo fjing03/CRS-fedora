@@ -1,3 +1,27 @@
+## 2026-11-20 — the submit confirmation reads as facts, not a sentence
+
+“Submit Replacement Request?” reviewed the block in a single 13px line —
+`B010 · (Week 4) Fri, 27 Nov 2026, 2:00 PM ~ 3:00 PM · 2 slots` — that wrapped wherever the box ran
+out of room, so the venue, week, date, time and length had to be picked apart by eye at exactly the
+moment the lecturer checks them. The block is now **six facts on six rows**: Course, Venue, Week,
+Date, Time, Slots, each with the page’s own 13px stroked icon, a fixed 62px label column, and every
+value starting on the same x. Course is new to the review (the subject is what the request is filed
+against); week and date are separate rows; the range uses an en dash and the length keeps the
+summary card’s own wording, `4 slots (2 hrs)`.
+
+The bordered, 200px-tall scroll box is gone: one saved block needs no container, and a second block
+is separated by one hairline instead of a scroll area inside the pop-up’s own scrolling body. Rows
+share a 20px line box, so icons, labels and values sit on one optical line, with a single 6px beat
+between the slot’s identity (course, venue) and its schedule (week, date, time, slots). No borders
+per row, no nested cards, nothing width-gated: checked at 320, 390, 768, 1024 and 1280 in light and
+dark, the widest value (`10:00 AM – 12:00 PM`) stays on one line inside the 420px dialog and the
+full-width phone sheet, and the 2-block case needs no inner scroll.
+
+The submission path is untouched: same values from the same sources, same “Yes, Submit Request” /
+“No, Keep My Selection” pair, same Livewire call, same guards. `RA_ICONS` gained `course` (an open
+book) and `date` (the week calendar marked with the day’s dot) in the existing 13px /
+`currentColor` / `stroke-width: 2` vocabulary.
+
 ## 2026-11-18 — explain the selected room in the guide
 
 **How to use this page → Venue rules** explains the current room’s default session types, any programme restriction, and seat capacity. Once an original slot is chosen or validly pinned, it explains permission and capacity for that exact class. It does not check whether a replacement time is free, change the venue list, or touch an unsent selection. On compact phones the arrangement footer no longer extends past the viewport and pulls the guide sheet sideways.
