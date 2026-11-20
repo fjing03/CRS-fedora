@@ -9,13 +9,15 @@ value starting on the same x. Course is new to the review (the subject is what t
 against); week and date are separate rows; the range uses an en dash and the length keeps the
 summary card’s own wording, `4 slots (2 hrs)`.
 
-The bordered, 200px-tall scroll box is gone: one saved block needs no container, and a second block
-is separated by one hairline instead of a scroll area inside the pop-up’s own scrolling body. Rows
+The bordered, 200px-tall scroll box that held them is gone, but the facts do not float loose either:
+they sit in the **same grey box the “Cancel this Class?” modal uses** (`var(--color-surface-variant)`,
+`--radius-sm`, 12 × 14px), so a confirmation screen looks like a confirmation screen in both modals.
+Two saved blocks get two boxes instead of a scroll area inside the pop-up’s own scrolling body. Rows
 share a 20px line box, so icons, labels and values sit on one optical line, with a single 6px beat
-between the slot’s identity (course, venue) and its schedule (week, date, time, slots). No borders
-per row, no nested cards, nothing width-gated: checked at 320, 390, 768, 1024 and 1280 in light and
-dark, the widest value (`10:00 AM – 12:00 PM`) stays on one line inside the 420px dialog and the
-full-width phone sheet, and the 2-block case needs no inner scroll.
+between the slot’s identity (course, venue) and its schedule (week, date, time, slots). There is no
+border of its own and nothing width-gated: checked at 320, 390, 768, 1024 and 1280 in light and dark,
+the widest value (`10:00 AM – 12:00 PM`) stays on one line inside the 420px dialog and the full-width
+phone sheet, and the 2-block case needs no inner scroll.
 
 The submission path is untouched: same values from the same sources, same “Yes, Submit Request” /
 “No, Keep My Selection” pair, same Livewire call, same guards. `RA_ICONS` gained `course` (an open

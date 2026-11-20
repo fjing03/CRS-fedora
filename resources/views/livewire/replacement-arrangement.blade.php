@@ -649,11 +649,14 @@
            block is ONE FACT PER ROW now — the same anatomy as the Selected
            Summary card (icon, then the fact) in the card's own order, plus the
            slot's identity (course, venue) at the top. The label column is
-           fixed so every value starts on the same x, and the only rule left is
-           the hairline BETWEEN two saved blocks: one block needs no container,
-           no border and no inner scroll (the pop-up body already scrolls).
+           fixed so every value starts on the same x.
            Rows share a 20px line box, so icon, label and value sit on one
-           optical line at every width; nothing is width-gated. */
+           optical line at every width; nothing is width-gated.
+           2026-11-20 (second pass, user: "learn from the Cancel this Class?
+           modal"): the facts sit in the SAME grey box that modal uses —
+           `var(--color-surface-variant)` on `var(--radius-sm)` with 12/14px of
+           padding. Two saved blocks get two boxes, not a hairline between rows,
+           and that is why the box carries no border and no inner scroll. */
         .ra-review-intro {
             margin-bottom: 10px;
             font-weight: 500;
@@ -661,17 +664,16 @@
         .ra-review {
             display: flex;
             flex-direction: column;
-            gap: 12px;
-        }
-        .ra-review-block + .ra-review-block {
-            padding-top: 12px;
-            border-top: 1px solid var(--color-outline);
+            gap: 10px;
         }
         .ra-review-facts {
             display: flex;
             flex-direction: column;
             gap: 4px;
             margin: 0;
+            padding: 12px 14px;
+            background: var(--color-surface-variant);
+            border-radius: var(--radius-sm);
         }
         .ra-review-row {
             display: flex;
